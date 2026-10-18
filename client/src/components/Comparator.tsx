@@ -337,6 +337,11 @@ export function CoverageCard({
               {o.short}
             </span>
             <span className="truncate font-serif text-[17px] font-bold leading-none">{o.name}</span>
+            {o.flag && (
+              <span className="text-base select-none shrink-0" title={`Origem: ${o.country || ""}`}>
+                {o.flag}
+              </span>
+            )}
           </div>
           <div className="mt-2 h-[3px] w-9 rounded-full" style={{ background: o.color }} />
         </div>

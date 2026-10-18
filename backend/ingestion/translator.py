@@ -41,10 +41,10 @@ def translate_to_pt(text: str, source_lang: Optional[str] = None) -> str:
         req = urllib.request.Request(
             url,
             headers={
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
             },
         )
-        with urllib.request.urlopen(req, timeout=4.0) as resp:
+        with urllib.request.urlopen(req, timeout=6.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             translated = "".join([part[0] for part in data[0] if part and part[0]])
             if translated:

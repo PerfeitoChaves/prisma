@@ -54,6 +54,8 @@ export interface Outlet {
   site: string;
   spectrumCategory?: SpectrumCategory;
   spectrumLabel?: string;
+  country?: string;
+  flag?: string;
 }
 
 export const OUTLETS: Outlet[] = [
@@ -118,14 +120,55 @@ export const OUTLETS: Outlet[] = [
   { id: "eurogamer_pt", name: "Eurogamer Portugal", short: "EUG", spectrum: 50, color: "#0090ea", site: "eurogamer.pt", spectrumCategory: "independentes", spectrumLabel: "Independentes / Games & Reviews" },
   { id: "pcgamer", name: "PC Gamer", short: "PCG", spectrum: 50, color: "#e61b24", site: "pcgamer.com", spectrumCategory: "independentes", spectrumLabel: "Independentes / PC Gaming & Hardware" },
   /* ── AGÊNCIAS INTERNACIONAIS (8 fontes) ── */
-  { id: "reuters", name: "Reuters", short: "RTR", spectrum: 52, color: "#d97a00", site: "reuters.com", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Agência Global" },
-  { id: "ap", name: "Associated Press", short: "AP", spectrum: 50, color: "#333333", site: "apnews.com", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Agência Global" },
-  { id: "dw_brasil", name: "Deutsche Welle Brasil", short: "DW", spectrum: 50, color: "#0064d2", site: "dw.com", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Pública Internacional" },
-  { id: "bbc_brasil", name: "BBC News Brasil", short: "BBC", spectrum: 50, color: "#262626", site: "bbc.com/portuguese", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Pública Britânica" },
-  { id: "bbc_world", name: "BBC News World", short: "BBC", spectrum: 50, color: "#262626", site: "bbc.com", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Global News" },
-  { id: "euronews_pt", name: "Euronews em Português", short: "EUR", spectrum: 50, color: "#003399", site: "pt.euronews.com", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Europa" },
-  { id: "aljazeera", name: "Al Jazeera English", short: "ALJ", spectrum: 48, color: "#d35400", site: "aljazeera.com", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Global South" },
-  { id: "npr_world", name: "NPR World", short: "NPR", spectrum: 48, color: "#2c4d6f", site: "npr.org", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Rádio Pública US" },
+  { id: "reuters", name: "Reuters", short: "RTR", spectrum: 52, color: "#d97a00", site: "reuters.com", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Agência Global", country: "GB", flag: "🇬🇧" },
+  { id: "ap", name: "Associated Press", short: "AP", spectrum: 50, color: "#333333", site: "apnews.com", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Agência Global", country: "US", flag: "🇺🇸" },
+  { id: "dw_brasil", name: "Deutsche Welle Brasil", short: "DW", spectrum: 50, color: "#0064d2", site: "dw.com", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Pública Internacional", country: "DE", flag: "🇩🇪" },
+  { id: "bbc_brasil", name: "BBC News Brasil", short: "BBC", spectrum: 50, color: "#262626", site: "bbc.com/portuguese", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Pública Britânica", country: "GB", flag: "🇬🇧" },
+  { id: "bbc_world", name: "BBC News World", short: "BBC", spectrum: 50, color: "#262626", site: "bbc.com", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Global News", country: "GB", flag: "🇬🇧" },
+  { id: "euronews_pt", name: "Euronews em Português", short: "EUR", spectrum: 50, color: "#003399", site: "pt.euronews.com", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Europa", country: "EU", flag: "🇪🇺" },
+  { id: "aljazeera", name: "Al Jazeera English", short: "ALJ", spectrum: 48, color: "#d35400", site: "aljazeera.com", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Global South", country: "QA", flag: "🇶🇦" },
+  { id: "npr_world", name: "NPR World", short: "NPR", spectrum: 48, color: "#2c4d6f", site: "npr.org", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Rádio Pública US", country: "US", flag: "🇺🇸" },
+
+  /* ── INTERNACIONAIS: CHINA (3 fontes) ── */
+  { id: "xinhua", name: "Xinhua News", short: "XIN", spectrum: 48, color: "#d32f2f", site: "xinhuanet.com", spectrumCategory: "agências internacionais", spectrumLabel: "China / Agência Estatal Oficial", country: "CN", flag: "🇨🇳" },
+  { id: "scmp", name: "South China Morning Post", short: "SCMP", spectrum: 50, color: "#003366", site: "scmp.com", spectrumCategory: "centro", spectrumLabel: "Hong Kong / Geopolítica Asiática", country: "HK", flag: "🇭🇰" },
+  { id: "global_times", name: "Global Times", short: "GT", spectrum: 25, color: "#c62828", site: "globaltimes.cn", spectrumCategory: "esquerda", spectrumLabel: "China / Visão Internacional de Pequim", country: "CN", flag: "🇨🇳" },
+
+  /* ── INTERNACIONAIS: RÚSSIA (3 fontes) ── */
+  { id: "tass", name: "TASS", short: "TASS", spectrum: 65, color: "#003399", site: "tass.com", spectrumCategory: "agências internacionais", spectrumLabel: "Rússia / Agência Estatal Oficial", country: "RU", flag: "🇷🇺" },
+  { id: "the_moscow_times", name: "The Moscow Times", short: "TMT", spectrum: 48, color: "#111111", site: "themoscowtimes.com", spectrumCategory: "independentes", spectrumLabel: "Rússia / Independente no Exílio", country: "RU", flag: "🇷🇺" },
+  { id: "sputnik_globe", name: "Sputnik News", short: "SPU", spectrum: 75, color: "#e65100", site: "sputnikglobe.com", spectrumCategory: "agências internacionais", spectrumLabel: "Rússia / Mídia Internacional Estatal", country: "RU", flag: "🇷🇺" },
+
+  /* ── INTERNACIONAIS: JAPÃO (3 fontes) ── */
+  { id: "nhk_world", name: "NHK World", short: "NHK", spectrum: 50, color: "#00838f", site: "nhk.or.jp", spectrumCategory: "agências internacionais", spectrumLabel: "Japão / Emissora Pública Internacional", country: "JP", flag: "🇯🇵" },
+  { id: "the_japan_times", name: "The Japan Times", short: "TJT", spectrum: 50, color: "#1d4e89", site: "japantimes.co.jp", spectrumCategory: "centro", spectrumLabel: "Japão / Referência Internacional em Inglês", country: "JP", flag: "🇯🇵" },
+  { id: "nikkei_asia", name: "Nikkei Asia", short: "NKA", spectrum: 62, color: "#004d40", site: "asia.nikkei.com", spectrumCategory: "centro-direita", spectrumLabel: "Japão / Economia e Geopolítica Asiática", country: "JP", flag: "🇯🇵" },
+
+  /* ── INTERNACIONAIS: TAILÂNDIA (2 fontes) ── */
+  { id: "bangkok_post", name: "Bangkok Post", short: "BKP", spectrum: 50, color: "#005689", site: "bangkokpost.com", spectrumCategory: "centro", spectrumLabel: "Tailândia / Decano do Sudeste Asiático", country: "TH", flag: "🇹🇭" },
+  { id: "the_nation_th", name: "The Nation", short: "NAT", spectrum: 50, color: "#1a237e", site: "nationthailand.com", spectrumCategory: "centro", spectrumLabel: "Tailândia / Relações Internacionais ASEAN", country: "TH", flag: "🇹🇭" },
+
+  /* ── INTERNACIONAIS: EUA (3 fontes) ── */
+  { id: "nytimes_world", name: "The New York Times", short: "NYT", spectrum: 36, color: "#111111", site: "nytimes.com", spectrumCategory: "centro-esquerda", spectrumLabel: "EUA / Referência Internacional Liberal", country: "US", flag: "🇺🇸" },
+  { id: "washington_post", name: "The Washington Post", short: "WP", spectrum: 38, color: "#212121", site: "washingtonpost.com", spectrumCategory: "centro-esquerda", spectrumLabel: "EUA / Política Externa & Defesa", country: "US", flag: "🇺🇸" },
+  { id: "wsj_world", name: "The Wall Street Journal", short: "WSJ", spectrum: 65, color: "#0e7a4d", site: "wsj.com", spectrumCategory: "centro-direita", spectrumLabel: "EUA / Finanças Globais & Geopolítica", country: "US", flag: "🇺🇸" },
+
+  /* ── INTERNACIONAIS: ARGENTINA (4 fontes) ── */
+  { id: "clarin_mundo", name: "Clarín", short: "CLA", spectrum: 65, color: "#c62828", site: "clarin.com", spectrumCategory: "centro-direita", spectrumLabel: "Argentina / Maior Circulação da América do Sul", country: "AR", flag: "🇦🇷" },
+  { id: "lanacion_mundo", name: "La Nación", short: "LN", spectrum: 72, color: "#0d47a1", site: "lanacion.com.ar", spectrumCategory: "direita", spectrumLabel: "Argentina / Conservador Tradicional", country: "AR", flag: "🇦🇷" },
+  { id: "infobae_america", name: "Infobae", short: "INFO", spectrum: 62, color: "#ff6f00", site: "infobae.com", spectrumCategory: "centro-direita", spectrumLabel: "América Latina / Hard News Digital", country: "AR", flag: "🇦🇷" },
+  { id: "pagina12_mundo", name: "Página/12", short: "P12", spectrum: 20, color: "#b71c1c", site: "pagina12.com.ar", spectrumCategory: "esquerda", spectrumLabel: "Argentina / Esquerda e Direitos Humanos", country: "AR", flag: "🇦🇷" },
+
+  /* ── INTERNACIONAIS: MUNDO ÁRABE & ORIENTE MÉDIO (3 fontes) ── */
+  { id: "al_arabiya_en", name: "Al Arabiya", short: "ARB", spectrum: 65, color: "#6a1b9a", site: "alarabiya.net", spectrumCategory: "centro-direita", spectrumLabel: "Arábia Saudita & Golfo / Diplomacia Árabe", country: "SA", flag: "🇸🇦" },
+  { id: "the_national_uae", name: "The National UAE", short: "TN", spectrum: 50, color: "#00695c", site: "thenationalnews.com", spectrumCategory: "centro", spectrumLabel: "Emirados Árabes / Rotas Marítimas & Golfo", country: "AE", flag: "🇦🇪" },
+  { id: "irna_iran", name: "IRNA (Irã)", short: "IRNA", spectrum: 50, color: "#1b5e20", site: "irna.ir", spectrumCategory: "agências internacionais", spectrumLabel: "Irã / Agência Oficial da República Islâmica", country: "IR", flag: "🇮🇷" },
+
+  /* ── INTERNACIONAIS: UCRÂNIA (3 fontes) ── */
+  { id: "kyiv_independent", name: "The Kyiv Independent", short: "TKI", spectrum: 48, color: "#fbc02d", site: "kyivindependent.com", spectrumCategory: "independentes", spectrumLabel: "Ucrânia / Cobertura Independente de Guerra", country: "UA", flag: "🇺🇦" },
+  { id: "ukrayinska_pravda", name: "Ukrayinska Pravda", short: "UP", spectrum: 50, color: "#b71c1c", site: "pravda.com.ua", spectrumCategory: "centro", spectrumLabel: "Ucrânia / Jornalismo Investigativo & Fronte", country: "UA", flag: "🇺🇦" },
+  { id: "kyiv_post", name: "Kyiv Post", short: "KP", spectrum: 60, color: "#0277bd", site: "kyivpost.com", spectrumCategory: "centro-direita", spectrumLabel: "Ucrânia / Diplomacia & Conflito Internacional", country: "UA", flag: "🇺🇦" },
+
   /* ── COMPATIBILIDADE / ALIASES ── */
   { id: "cnn", name: "CNN Brasil", short: "CNN", spectrum: 52, color: "#7d1f2d", site: "cnnbrasil.com.br", spectrumCategory: "centro", spectrumLabel: "Centro / Hard News" },
   { id: "bbc", name: "BBC News Brasil", short: "BBC", spectrum: 50, color: "#262626", site: "bbc.com/portuguese", spectrumCategory: "agências internacionais", spectrumLabel: "Agências Internacionais / Pública Britânica" },
@@ -246,6 +289,16 @@ export function getStoryTags(story: Story): string[] {
   if (story.tags && story.tags.length > 0) return story.tags;
   const tags: string[] = [];
   const text = (story.title + " " + story.kicker + " " + story.summary).toLowerCase();
+  if (text.includes("ormuz") || text.includes("hormuz") || text.includes("pérsico") || text.includes("petroleiro")) tags.push("#EstreitoDeOrmuz");
+  if (text.includes("ucrânia") || text.includes("ucrania") || text.includes("kyiv") || text.includes("zelensky")) tags.push("#Ucrânia");
+  if (text.includes("rússia") || text.includes("russia") || text.includes("moscou") || text.includes("putin")) tags.push("#Rússia");
+  if (text.includes("china") || text.includes("pequim") || text.includes("xi jinping") || text.includes("taiwan")) tags.push("#China");
+  if (text.includes("oriente médio") || text.includes("gaza") || text.includes("israel") || text.includes("irã") || text.includes("ira")) tags.push("#OrienteMédio");
+  if (text.includes("guerra") || text.includes("militar") || text.includes("otan") || text.includes("mísseis") || text.includes("drones")) tags.push("#Guerra");
+  if (text.includes("eua") || text.includes("estados unidos") || text.includes("biden") || text.includes("trump") || text.includes("washington")) tags.push("#EUA");
+  if (text.includes("argentina") || text.includes("milei") || text.includes("buenos aires")) tags.push("#Argentina");
+  if (text.includes("japão") || text.includes("japao") || text.includes("tóquio")) tags.push("#Japão");
+  if (text.includes("petróleo") || text.includes("petroleo") || text.includes("opep") || text.includes("barril")) tags.push("#Petróleo");
   if (text.includes("stf") || text.includes("supremo")) tags.push("#STF");
   if (text.includes("dólar") || text.includes("dolar") || text.includes("câmbio")) tags.push("#Dólar");
   if (text.includes("copom")) tags.push("#Copom");

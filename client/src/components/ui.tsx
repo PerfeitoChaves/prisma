@@ -204,6 +204,7 @@ export function OutletTag({
       >
         {o.short}
       </span>
+      {o.flag && <span className="text-[12px] select-none leading-none">{o.flag}</span>}
       {showName && <span className="text-[11px] font-medium text-ink2">{o.name}</span>}
     </span>
   );

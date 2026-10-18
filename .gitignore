@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+env/
+venv/
+ENV/
+.pytest_cache/
+
+# Node / Frontend
+node_modules/
+client/node_modules/
+client/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment & Local Secrets
+.env
+.env.local
+.env.*.local
+
+# Database (gerado em tempo de execução)
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# Agentes e temporários
+.agents/
+client/src_backup/
+frontend_backup/
+uploaded_ref/
+uploaded_ref_2/
+
+# Sistema
+.DS_Store
+Thumbs.db

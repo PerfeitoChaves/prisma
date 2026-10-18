@@ -1,4 +1,4 @@
-import { Radio, TrendingUp } from "lucide-react";
+import { Globe, Radio, TrendingUp } from "lucide-react";
 import { cn } from "../utils/cn";
 import { TICKER } from "../data/news";
 import { IBookmark, ICompare, INewspaper, ISearch } from "./icons";
@@ -13,7 +13,7 @@ export function todayLong(): string {
   });
 }
 
-export type NavView = "capa" | "comparador" | "radar" | "aovivo" | (string & {});
+export type NavView = "capa" | "comparador" | "tensoes" | "radar" | "aovivo" | (string & {});
 
 /* ---------- barra superior PRISMA ---------- */
 export function TopBar({
@@ -53,6 +53,7 @@ export function TopBar({
             [
               ["capa", "Capa"],
               ["comparador", "Comparador"],
+              ["tensoes", "Tensões"],
               ["radar", "Radar X"],
               ["aovivo", "Ao Vivo"],
             ] as const
@@ -137,6 +138,13 @@ export function Dock({
       action: () => onNav("comparador"),
     },
     {
+      id: "tensoes" as const,
+      label: "Tensões",
+      icon: Globe,
+      active: view === "tensoes",
+      action: () => onNav("tensoes"),
+    },
+    {
       id: "radar" as const,
       label: "Radar X",
       icon: TrendingUp,
@@ -163,16 +171,16 @@ export function Dock({
   ];
   return (
     <nav
-      className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 md:hidden"
+      className="fixed inset-x-2 sm:inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 md:hidden"
       aria-label="Navegação principal"
     >
-      <div className="glass grid grid-cols-6 overflow-hidden rounded-xl border border-rule shadow-[0_14px_36px_-14px_rgba(29,26,22,0.4)]">
+      <div className="glass grid grid-cols-7 overflow-hidden rounded-xl border border-rule shadow-[0_14px_36px_-14px_rgba(29,26,22,0.4)]">
         {items.map((it) => (
           <button
             key={it.id}
             onClick={it.action}
             className={cn(
-              "relative flex min-h-[60px] flex-col items-center justify-center gap-1 transition-colors",
+              "relative flex min-h-[58px] sm:min-h-[60px] flex-col items-center justify-center gap-0.5 sm:gap-1 transition-colors px-0.5",
               it.active ? "text-ink" : "text-ink3 hover:text-ink"
             )}
             aria-label={it.label}
@@ -180,20 +188,22 @@ export function Dock({
           >
             <span
               className={cn(
-                "flex h-8 w-11 items-center justify-center rounded-full transition-all duration-300",
+                "flex h-7 w-8 sm:h-8 sm:w-10 items-center justify-center rounded-full transition-all duration-300",
                 it.active ? "bg-ink text-paper2" : "bg-transparent"
               )}
             >
-              <it.icon className="h-5 w-5" />
+              <it.icon className="h-4 w-4 sm:h-5 sm:w-5" />
             </span>
-            <span className="text-[9px] font-bold uppercase tracking-[0.08em]">{it.label}</span>
+            <span className="text-[7.5px] sm:text-[9px] font-bold uppercase tracking-[0.04em] sm:tracking-[0.08em] truncate max-w-full">
+              {it.label}
+            </span>
             {!!it.badge && it.badge > 0 && (
-              <span className="absolute right-[calc(50%-22px)] top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-press px-1 text-[9px] font-bold text-paper2">
+              <span className="absolute right-[calc(50%-18px)] sm:right-[calc(50%-22px)] top-1 flex h-3.5 sm:h-4 min-w-3.5 sm:min-w-4 items-center justify-center rounded-full bg-press px-1 text-[8px] sm:text-[9px] font-bold text-paper2">
                 {it.badge}
               </span>
             )}
             {it.liveDot && !it.active && (
-              <span className="absolute right-[calc(50%-18px)] top-2 flex h-2 w-2">
+              <span className="absolute right-[calc(50%-14px)] sm:right-[calc(50%-18px)] top-1.5 sm:top-2 flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-press opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-press" />
               </span>

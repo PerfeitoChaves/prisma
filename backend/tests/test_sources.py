@@ -15,9 +15,9 @@ class TestSources(unittest.TestCase):
             cls.sources = json.load(f)
 
     def test_sources_count_and_ids(self):
-        """Verifica que há 50+ fontes carregadas (62 no catálogo) e que todos os IDs são únicos."""
+        """Verifica que há 50+ fontes carregadas (86 no catálogo) e que todos os IDs são únicos."""
         self.assertGreaterEqual(len(self.sources), 50, "Deve haver ao menos 50 fontes cadastradas")
-        self.assertEqual(len(self.sources), 62, "Catálogo deve conter 62 veículos")
+        self.assertEqual(len(self.sources), 86, "Catálogo deve conter 86 veículos")
         ids = [s.get("id") for s in self.sources]
         self.assertEqual(len(ids), len(set(ids)), "IDs de fontes devem ser estritamente únicos")
 
@@ -79,6 +79,20 @@ class TestSources(unittest.TestCase):
         self.assertIn("spectrum", sample)
         self.assertIn("category", sample)
         self.assertIn("url", sample)
+
+    def test_sources_geopolitical_blocs(self):
+        """Verifica que todas as 86 fontes possuem geopolitical_bloc válido ('west', 'east', 'global_south')."""
+        valid_blocs = {"west", "east", "global_south"}
+        bloc_counts = {"west": 0, "east": 0, "global_south": 0}
+        for s in self.sources:
+            self.assertIn("geopolitical_bloc", s, f"Fonte {s.get('id')} não possui geopolitical_bloc")
+            bloc = s["geopolitical_bloc"]
+            self.assertIn(bloc, valid_blocs, f"Bloco inválido '{bloc}' na fonte {s.get('id')}")
+            bloc_counts[bloc] += 1
+        
+        self.assertEqual(bloc_counts["west"], 26, "Deve haver exatamente 26 fontes no Bloco Ocidental")
+        self.assertEqual(bloc_counts["east"], 7, "Deve haver exatamente 7 fontes no Bloco Eurasiático")
+        self.assertEqual(bloc_counts["global_south"], 53, "Deve haver exatamente 53 fontes no Sul Global & Neutros")
 
 
 if __name__ == "__main__":

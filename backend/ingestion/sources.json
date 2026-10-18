@@ -9,7 +9,9 @@
     "spectrum_label": "Agências Internacionais / Agência Global",
     "spectrum_code": "center",
     "country": "GB",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "ap",
@@ -21,7 +23,9 @@
     "spectrum_label": "Agências Internacionais / Agência Global",
     "spectrum_code": "center",
     "country": "US",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "dw_brasil",
@@ -33,7 +37,9 @@
     "spectrum_label": "Agências Internacionais / Pública Internacional",
     "spectrum_code": "center",
     "country": "DE",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "bbc_brasil",
@@ -45,7 +51,9 @@
     "spectrum_label": "Agências Internacionais / Pública Britânica",
     "spectrum_code": "center",
     "country": "GB",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "bbc_world",
@@ -57,7 +65,9 @@
     "spectrum_label": "Agências Internacionais / Global News",
     "spectrum_code": "center",
     "country": "GB",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "euronews_pt",
@@ -69,7 +79,9 @@
     "spectrum_label": "Agências Internacionais / Europa",
     "spectrum_code": "center",
     "country": "FR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "aljazeera",
@@ -81,7 +93,9 @@
     "spectrum_label": "Agências Internacionais / Global South",
     "spectrum_code": "center-left",
     "country": "QA",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "npr_world",
@@ -93,7 +107,9 @@
     "spectrum_label": "Agências Internacionais / Rádio Pública US",
     "spectrum_code": "center-left",
     "country": "US",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "cartacapital",
@@ -105,7 +121,9 @@
     "spectrum_label": "Esquerda / Análise e Opinião",
     "spectrum_code": "left",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "brasildefato",
@@ -117,7 +135,9 @@
     "spectrum_label": "Esquerda / Popular",
     "spectrum_code": "left",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "brasil247",
@@ -129,7 +149,9 @@
     "spectrum_label": "Esquerda / Política",
     "spectrum_code": "left",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "intercept_br",
@@ -141,7 +163,9 @@
     "spectrum_label": "Esquerda / Investigativo",
     "spectrum_code": "left",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "apublica",
@@ -153,7 +177,9 @@
     "spectrum_label": "Esquerda / Investigativo Independente",
     "spectrum_code": "left",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "operamundi",
@@ -165,7 +191,9 @@
     "spectrum_label": "Esquerda / Internacional",
     "spectrum_code": "left",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "revistaforum",
@@ -177,7 +205,9 @@
     "spectrum_label": "Esquerda / Noticiário e Opinião",
     "spectrum_code": "left",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "reporterbrasil",
@@ -189,7 +219,9 @@
     "spectrum_label": "Esquerda / Direitos Humanos e Clima",
     "spectrum_code": "left",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "folha",
@@ -201,7 +233,9 @@
     "spectrum_label": "Centro-Esquerda / Mainstream",
     "spectrum_code": "center-left",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "uol",
@@ -213,7 +247,9 @@
     "spectrum_label": "Centro-Esquerda / Portal Geral",
     "spectrum_code": "center-left",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "nexojornal",
@@ -225,7 +261,9 @@
     "spectrum_label": "Centro-Esquerda / Contexto e Gráficos",
     "spectrum_code": "center-left",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "theguardian",
@@ -237,7 +275,9 @@
     "spectrum_label": "Centro-Esquerda / Internacional",
     "spectrum_code": "center-left",
     "country": "GB",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "piaui",
@@ -249,7 +289,9 @@
     "spectrum_label": "Centro-Esquerda / Grande Reportagem",
     "spectrum_code": "center-left",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "wired",
@@ -261,7 +303,9 @@
     "spectrum_label": "Centro-Esquerda / Cultura Digital & Tech",
     "spectrum_code": "center-left",
     "country": "US",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "theverge",
@@ -273,7 +317,9 @@
     "spectrum_label": "Centro-Esquerda / Tech & Sociedade",
     "spectrum_code": "center-left",
     "country": "US",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "g1",
@@ -285,7 +331,9 @@
     "spectrum_label": "Centro / Noticiário Geral",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "cnn_brasil",
@@ -297,7 +345,9 @@
     "spectrum_label": "Centro / Hard News",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "poder360",
@@ -309,7 +359,9 @@
     "spectrum_label": "Centro / Factual & Bastidores",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "metropoles",
@@ -321,7 +373,9 @@
     "spectrum_label": "Centro / Factual e Exclusivas",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "agenciabrasil",
@@ -333,7 +387,9 @@
     "spectrum_label": "Centro / Agência Pública Nacional",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "jota",
@@ -345,7 +401,9 @@
     "spectrum_label": "Centro / Jurídico & Regulação STF",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "congressoemfoco",
@@ -357,7 +415,9 @@
     "spectrum_label": "Centro / Parlamento & Leis",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "aosfatos",
@@ -369,7 +429,9 @@
     "spectrum_label": "Centro / Fact-checking e Checagem",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "lupa",
@@ -381,7 +443,9 @@
     "spectrum_label": "Centro / Checagem de Fatos",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "opovo",
@@ -393,7 +457,9 @@
     "spectrum_label": "Centro / Regional Nordeste",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "gzh",
@@ -405,7 +471,9 @@
     "spectrum_label": "Centro / Regional Sul",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "correiobraziliense",
@@ -417,7 +485,9 @@
     "spectrum_label": "Centro / Capital Federal",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "otempo",
@@ -429,7 +499,9 @@
     "spectrum_label": "Centro / Regional Sudeste",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "tribunadonorte",
@@ -441,7 +513,9 @@
     "spectrum_label": "Centro / Regional Nordeste",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "conjur",
@@ -453,7 +527,9 @@
     "spectrum_label": "Centro / Judiciário",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "estadao",
@@ -465,7 +541,9 @@
     "spectrum_label": "Centro-Direita / Mainstream Tradicional",
     "spectrum_code": "center-right",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "veja",
@@ -477,7 +555,9 @@
     "spectrum_label": "Centro-Direita / Política Geral",
     "spectrum_code": "center-right",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "valor_globo",
@@ -489,7 +569,9 @@
     "spectrum_label": "Centro-Direita / Finanças & Macroeconômica",
     "spectrum_code": "center-right",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "infomoney",
@@ -501,7 +583,9 @@
     "spectrum_label": "Centro-Direita / Investimentos",
     "spectrum_code": "center-right",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "exame",
@@ -513,7 +597,9 @@
     "spectrum_label": "Centro-Direita / Negócios & Empresas",
     "spectrum_code": "center-right",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "neofeed",
@@ -525,7 +611,9 @@
     "spectrum_label": "Centro-Direita / Inovação & Startups",
     "spectrum_code": "center-right",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "bloomberglinea",
@@ -537,7 +625,9 @@
     "spectrum_label": "Centro-Direita / Finanças",
     "spectrum_code": "center-right",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "timesofisrael",
@@ -549,7 +639,9 @@
     "spectrum_label": "Centro-Direita / Internacional Oriente Médio",
     "spectrum_code": "center-right",
     "country": "IL",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "defensenews",
@@ -561,7 +653,9 @@
     "spectrum_label": "Centro-Direita / Defesa & Indústria Militar",
     "spectrum_code": "center-right",
     "country": "US",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "gazetadopovo",
@@ -573,7 +667,9 @@
     "spectrum_label": "Direita / Conservador Liberal",
     "spectrum_code": "right",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "jovempan",
@@ -585,7 +681,9 @@
     "spectrum_label": "Direita / Opinião & Hard News",
     "spectrum_code": "right",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "oantagonista",
@@ -597,7 +695,9 @@
     "spectrum_label": "Direita / Liberal-Conservador",
     "spectrum_code": "right",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "revistaoeste",
@@ -609,7 +709,9 @@
     "spectrum_label": "Direita / Conservador & Agro",
     "spectrum_code": "right",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "plenonews",
@@ -621,7 +723,9 @@
     "spectrum_label": "Direita / Conservador & Valores",
     "spectrum_code": "right",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "fox_news",
@@ -633,7 +737,9 @@
     "spectrum_label": "Direita / Conservador US",
     "spectrum_code": "right",
     "country": "US",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "diariodopoder",
@@ -645,7 +751,9 @@
     "spectrum_label": "Direita / Bastidores de Brasília",
     "spectrum_code": "right",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "canaltech",
@@ -657,7 +765,9 @@
     "spectrum_label": "Independentes / Tecnologia & Gadgets",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "tecmundo",
@@ -669,7 +779,9 @@
     "spectrum_label": "Independentes / Tech & Ciência",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "olhardigital",
@@ -681,7 +793,9 @@
     "spectrum_label": "Independentes / Inovação",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "techcrunch",
@@ -693,7 +807,9 @@
     "spectrum_label": "Independentes / Startups & IA",
     "spectrum_code": "center",
     "country": "US",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "arstechnica",
@@ -705,7 +821,9 @@
     "spectrum_label": "Independentes / Deep Tech & Ciência",
     "spectrum_code": "center",
     "country": "US",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "ign_br",
@@ -717,7 +835,9 @@
     "spectrum_label": "Independentes / Games & Cultura Pop",
     "spectrum_code": "center",
     "country": "BR",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "eurogamer_pt",
@@ -729,7 +849,9 @@
     "spectrum_label": "Independentes / Games & Reviews",
     "spectrum_code": "center",
     "country": "PT",
-    "language": "pt"
+    "language": "pt",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "pcgamer",
@@ -741,7 +863,9 @@
     "spectrum_label": "Independentes / PC Gaming & Hardware",
     "spectrum_code": "center",
     "country": "US",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "xinhua",
@@ -753,7 +877,9 @@
     "spectrum_label": "China / Agência Estatal Oficial",
     "spectrum_code": "center",
     "country": "CN",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "east",
+    "geopolitical_bloc_label": "Bloco Eurasiático / Oriental"
   },
   {
     "id": "scmp",
@@ -765,7 +891,9 @@
     "spectrum_label": "Hong Kong / Geopolítica Asiática",
     "spectrum_code": "center",
     "country": "HK",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "east",
+    "geopolitical_bloc_label": "Bloco Eurasiático / Oriental"
   },
   {
     "id": "global_times",
@@ -777,7 +905,9 @@
     "spectrum_label": "China / Visão Internacional de Pequim",
     "spectrum_code": "left",
     "country": "CN",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "east",
+    "geopolitical_bloc_label": "Bloco Eurasiático / Oriental"
   },
   {
     "id": "tass",
@@ -789,7 +919,9 @@
     "spectrum_label": "Rússia / Agência Estatal Oficial",
     "spectrum_code": "center-right",
     "country": "RU",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "east",
+    "geopolitical_bloc_label": "Bloco Eurasiático / Oriental"
   },
   {
     "id": "the_moscow_times",
@@ -801,7 +933,9 @@
     "spectrum_label": "Rússia / Jornalismo Independente no Exílio",
     "spectrum_code": "center",
     "country": "RU",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "east",
+    "geopolitical_bloc_label": "Bloco Eurasiático / Oriental"
   },
   {
     "id": "sputnik_globe",
@@ -813,7 +947,9 @@
     "spectrum_label": "Rússia / Mídia Internacional Estatal",
     "spectrum_code": "right",
     "country": "RU",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "east",
+    "geopolitical_bloc_label": "Bloco Eurasiático / Oriental"
   },
   {
     "id": "nhk_world",
@@ -825,7 +961,9 @@
     "spectrum_label": "Japão / Emissora Pública Internacional",
     "spectrum_code": "center",
     "country": "JP",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "the_japan_times",
@@ -837,7 +975,9 @@
     "spectrum_label": "Japão / Referência Internacional em Inglês",
     "spectrum_code": "center",
     "country": "JP",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "nikkei_asia",
@@ -849,7 +989,9 @@
     "spectrum_label": "Japão / Economia e Geopolítica Asiática",
     "spectrum_code": "center-right",
     "country": "JP",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "bangkok_post",
@@ -861,7 +1003,9 @@
     "spectrum_label": "Tailândia / Decano do Sudeste Asiático",
     "spectrum_code": "center",
     "country": "TH",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "the_nation_th",
@@ -873,7 +1017,9 @@
     "spectrum_label": "Tailândia / Relações Internacionais ASEAN",
     "spectrum_code": "center",
     "country": "TH",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "nytimes_world",
@@ -885,7 +1031,9 @@
     "spectrum_label": "EUA / Referência Internacional Liberal",
     "spectrum_code": "center-left",
     "country": "US",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "washington_post",
@@ -897,7 +1045,9 @@
     "spectrum_label": "EUA / Política Externa & Defesa",
     "spectrum_code": "center-left",
     "country": "US",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "wsj_world",
@@ -909,7 +1059,9 @@
     "spectrum_label": "EUA / Finanças Globais & Geopolítica",
     "spectrum_code": "center-right",
     "country": "US",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "clarin_mundo",
@@ -921,7 +1073,9 @@
     "spectrum_label": "Argentina / Maior Circulação",
     "spectrum_code": "center-right",
     "country": "AR",
-    "language": "es"
+    "language": "es",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "lanacion_mundo",
@@ -933,7 +1087,9 @@
     "spectrum_label": "Argentina / Conservador Tradicional",
     "spectrum_code": "right",
     "country": "AR",
-    "language": "es"
+    "language": "es",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "infobae_america",
@@ -945,7 +1101,9 @@
     "spectrum_label": "América Latina / Hard News Digital",
     "spectrum_code": "center-right",
     "country": "AR",
-    "language": "es"
+    "language": "es",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "pagina12_mundo",
@@ -957,7 +1115,9 @@
     "spectrum_label": "Argentina / Esquerda e Direitos Humanos",
     "spectrum_code": "left",
     "country": "AR",
-    "language": "es"
+    "language": "es",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "al_arabiya_en",
@@ -969,7 +1129,9 @@
     "spectrum_label": "Arábia Saudita & Golfo / Diplomacia Árabe",
     "spectrum_code": "center-right",
     "country": "SA",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "the_national_uae",
@@ -981,7 +1143,9 @@
     "spectrum_label": "Emirados Árabes / Rotas Marítimas & Golfo",
     "spectrum_code": "center",
     "country": "AE",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "global_south",
+    "geopolitical_bloc_label": "Sul Global & Neutros"
   },
   {
     "id": "irna_iran",
@@ -993,7 +1157,9 @@
     "spectrum_label": "Irã / Agência Oficial da República Islâmica",
     "spectrum_code": "center",
     "country": "IR",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "east",
+    "geopolitical_bloc_label": "Bloco Eurasiático / Oriental"
   },
   {
     "id": "kyiv_independent",
@@ -1005,7 +1171,9 @@
     "spectrum_label": "Ucrânia / Cobertura Independente de Guerra",
     "spectrum_code": "center",
     "country": "UA",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "ukrayinska_pravda",
@@ -1017,7 +1185,9 @@
     "spectrum_label": "Ucrânia / Fronte & Política",
     "spectrum_code": "center",
     "country": "UA",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   },
   {
     "id": "kyiv_post",
@@ -1029,6 +1199,8 @@
     "spectrum_label": "Ucrânia / Diplomacia & Conflito",
     "spectrum_code": "center-right",
     "country": "UA",
-    "language": "en"
+    "language": "en",
+    "geopolitical_bloc": "west",
+    "geopolitical_bloc_label": "Bloco Ocidental"
   }
 ]

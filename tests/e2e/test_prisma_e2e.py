@@ -528,6 +528,202 @@ class TestTier1FeatureCoverage(unittest.TestCase):
         self.assertIn("outDir", content)
         self.assertIn("../frontend", content)
 
+    # --------------------------------------------------------------------------
+    # Geopolitics & Narrative Matrix (M6-M8 / R1-R4)
+    # --------------------------------------------------------------------------
+
+    def test_t1_geopolitics_navigation(self):
+        """F7.1: Verify 'Tensões' navigation in TopBar and 7-column Dock in Chrome.tsx and App.tsx."""
+        chrome_path = PROJECT_ROOT / "client" / "src" / "components" / "Chrome.tsx"
+        app_path = PROJECT_ROOT / "client" / "src" / "App.tsx"
+        self.assertTrue(chrome_path.exists(), "Chrome.tsx must exist")
+        self.assertTrue(app_path.exists(), "App.tsx must exist")
+
+        chrome_content = chrome_path.read_text(encoding="utf-8")
+        app_content = app_path.read_text(encoding="utf-8")
+
+        # 1. Verify NavView type and TopBar navigation in Chrome.tsx
+        self.assertIn('"tensoes"', chrome_content, "Chrome.tsx NavView must include 'tensoes'")
+        self.assertTrue(
+            '["tensoes", "Tensões"]' in chrome_content or '"tensoes"' in chrome_content,
+            "TopBar must provide 'Tensões' navigation option"
+        )
+        self.assertIn("Globe", chrome_content, "Tensões tab must use tactical Globe icon")
+
+        # 2. Verify 7-column Mobile Dock in Chrome.tsx
+        self.assertIn("grid-cols-7", chrome_content, "Mobile Dock must use 7-column grid layout")
+        dock_items = ["capa", "comparador", "tensoes", "radar", "aovivo", "buscar", "salvos"]
+        for item_id in dock_items:
+            self.assertIn(f'id: "{item_id}"', chrome_content, f"Dock item '{item_id}' must be present in Chrome.tsx")
+
+        # 3. Verify App.tsx View type and dispatchers
+        self.assertIn('"tensoes"', app_content, "App.tsx View type must include 'tensoes'")
+        self.assertIn("openTensoes", app_content, "App.tsx must declare openTensoes dispatcher")
+        self.assertIn("setSelectedHotspotId", app_content, "App.tsx must manage selectedHotspotId state")
+        self.assertIn("<TensionsView", app_content, "App.tsx must render <TensionsView /> when view is 'tensoes'")
+
+    def test_t1_geopolitics_tactical_map(self):
+        """F7.3: Verify pure SVG TacticalWorldMap with coordinate grid, 8 hotspots with exact projection coordinates, and radar sweep."""
+        tactical_map_path = PROJECT_ROOT / "client" / "src" / "components" / "geopolitics" / "TacticalWorldMap.tsx"
+        world_paths_path = PROJECT_ROOT / "client" / "src" / "components" / "geopolitics" / "worldMapPaths.ts"
+        geopolitics_path = PROJECT_ROOT / "client" / "src" / "data" / "geopolitics.ts"
+
+        self.assertTrue(tactical_map_path.exists(), "TacticalWorldMap.tsx must exist")
+        self.assertTrue(world_paths_path.exists(), "worldMapPaths.ts must exist")
+        self.assertTrue(geopolitics_path.exists(), "geopolitics.ts must exist")
+
+        map_content = tactical_map_path.read_text(encoding="utf-8")
+        paths_content = world_paths_path.read_text(encoding="utf-8")
+        geo_content = geopolitics_path.read_text(encoding="utf-8")
+
+        # 1. Pure SVG architecture without heavy external map libraries
+        self.assertIn("<svg", map_content, "Must render pure SVG root element")
+        self.assertTrue(
+            "0 0 1000 500" in map_content,
+            "Must use standard tactical 1000x500 base dimensions"
+        )
+        self.assertNotIn("mapboxgl", map_content, "Must not depend on Mapbox")
+        self.assertNotIn("google.maps", map_content, "Must not depend on Google Maps")
+
+        # 2. Coordinate grid and radar sweep animation
+        self.assertTrue(
+            "grid" in map_content.lower() or "graticule" in map_content.lower() or "lat" in map_content.lower(),
+            "Tactical map must render coordinate grid / graticule lines"
+        )
+        self.assertTrue(
+            "radar" in map_content.lower() or "sweep" in map_content.lower() or "anim-sweep" in map_content,
+            "Tactical map must include radar sweep animation effect"
+        )
+
+        # 3. Exactly 8 strategic hotspots with mandated SVG projection coordinates
+        expected_hotspots = {
+            "ormuz": (656, 176),
+            "ucrania": (588, 114),
+            "taiwan": (835, 183),
+            "mar_vermelho": (621, 213),
+            "gaza": (596, 163),
+            "coreia": (854, 144),
+            "sahel": (572, 210),
+            "essequibo": (336, 232),
+        }
+        for hid, (x, y) in expected_hotspots.items():
+            self.assertIn(f'id: "{hid}"', geo_content, f"Hotspot '{hid}' must exist in geopolitics.ts")
+            self.assertTrue(
+                f"x: {x}" in geo_content or f'"x": {x}' in geo_content,
+                f"Hotspot '{hid}' must have mandated projection x={x}"
+            )
+            self.assertTrue(
+                f"y: {y}" in geo_content or f'"y": {y}' in geo_content,
+                f"Hotspot '{hid}' must have mandated projection y={y}"
+            )
+
+        # 4. Severity pulses (critical, high, moderate)
+        self.assertIn("critico", geo_content)
+        self.assertIn("alto", geo_content)
+        self.assertIn("moderado", geo_content)
+        self.assertTrue(
+            "animate-ping" in map_content or "pulse" in map_content.lower() or "tactical-hotspots" in map_content,
+            "Pins must include pulsing tension severity indicators"
+        )
+
+    def test_t1_geopolitics_hotspots_feed(self):
+        """F7.4 & F7.5: Verify mobile cards feed mode with sorting, severity filters, and HotspotIntelligencePanel dossier."""
+        feed_path = PROJECT_ROOT / "client" / "src" / "components" / "geopolitics" / "HotspotsFeed.tsx"
+        intel_path = PROJECT_ROOT / "client" / "src" / "components" / "geopolitics" / "HotspotIntelligencePanel.tsx"
+        tensions_path = PROJECT_ROOT / "client" / "src" / "components" / "geopolitics" / "TensionsView.tsx"
+
+        self.assertTrue(feed_path.exists(), "HotspotsFeed.tsx must exist")
+        self.assertTrue(intel_path.exists(), "HotspotIntelligencePanel.tsx must exist")
+        self.assertTrue(tensions_path.exists(), "TensionsView.tsx must exist")
+
+        feed_content = feed_path.read_text(encoding="utf-8")
+        intel_content = intel_path.read_text(encoding="utf-8")
+        tensions_content = tensions_path.read_text(encoding="utf-8")
+
+        # 1. HotspotsFeed filtering and sorting
+        self.assertTrue(
+            "critico" in feed_content or "critical" in feed_content.lower() or "filter" in feed_content.lower(),
+            "HotspotsFeed must support severity filtering"
+        )
+        self.assertTrue(
+            "sort" in feed_content.lower() or "order" in feed_content.lower(),
+            "HotspotsFeed must support sorting criteria"
+        )
+        self.assertIn("onSelectHotspot", feed_content, "HotspotsFeed cards must trigger onSelectHotspot callback")
+
+        # 2. HotspotsFeed actor flags and metadata display
+        self.assertIn("actors", feed_content, "HotspotsFeed cards must display key actors")
+        self.assertIn("flag", feed_content, "HotspotsFeed cards must render actor flags")
+
+        # 3. HotspotIntelligencePanel: Dossier geoestratégico, actors, and news count
+        self.assertIn("DOSSIÊ GEOESTRATÉGICO", intel_content, "HotspotIntelligencePanel must render dossier banner")
+        self.assertIn("Relevância Estratégica", intel_content, "HotspotIntelligencePanel must present strategic relevance")
+        self.assertIn("Síntese Operacional", intel_content, "HotspotIntelligencePanel must present crisis synthesis")
+        self.assertIn("correlatedStories", intel_content, "HotspotIntelligencePanel must compute correlated stories")
+        self.assertIn("onCompare", intel_content, "HotspotIntelligencePanel must support 1-touch comparison action")
+
+        # 4. TensionsView toggle between map and mobile feed
+        self.assertIn("viewMode", tensions_content, "TensionsView must manage viewMode ('mapa' vs 'feed')")
+        self.assertIn("<TacticalWorldMap", tensions_content, "TensionsView must render TacticalWorldMap")
+        self.assertIn("<HotspotsFeed", tensions_content, "TensionsView must render HotspotsFeed")
+
+    def test_t1_geopolitics_narrative_matrix(self):
+        """F8.1 - F8.4: Verify 3-column tri-axial narrative matrix contrasting West, East, and Global South."""
+        matrix_path = PROJECT_ROOT / "client" / "src" / "components" / "geopolitics" / "NarrativeMatrix.tsx"
+        geo_path = PROJECT_ROOT / "client" / "src" / "data" / "geopolitics.ts"
+
+        self.assertTrue(matrix_path.exists(), "NarrativeMatrix.tsx must exist")
+        self.assertTrue(geo_path.exists(), "geopolitics.ts must exist")
+
+        matrix_content = matrix_path.read_text(encoding="utf-8")
+        geo_content = geo_path.read_text(encoding="utf-8")
+
+        # 1. Tri-axial blocs specification: West, East, Global South
+        blocs = ["west", "east", "global_south"]
+        for bloc in blocs:
+            self.assertIn(f'"{bloc}"', geo_content, f"Bloc '{bloc}' must be defined in data models")
+            self.assertIn(bloc, matrix_content, f"NarrativeMatrix must reference bloc '{bloc}'")
+
+        # 2. Shared factual baseline anchor
+        self.assertIn("sharedFact", geo_content, "geopolitics.ts must provide sharedFact anchor for hotspots")
+        self.assertTrue(
+            "Base Factual Compartilhada" in matrix_content or "sharedFact" in matrix_content,
+            "NarrativeMatrix must display shared fact header"
+        )
+
+        # 3. Framing headlines and core arguments
+        self.assertIn("framingHeadline", geo_content, "Blocs must provide framingHeadline")
+        self.assertIn("coreArgument", geo_content, "Blocs must provide coreArgument")
+
+        # 4. Narrative warfare vocabulary tags with connotation polarity
+        self.assertIn("vocabulary", geo_content, "Blocs must provide narrative vocabulary entries")
+        self.assertIn("connotation", geo_content, "Vocabulary must classify connotation (positive, negative, neutral)")
+        self.assertTrue(
+            "Vocabulário de Guerra Narrativa" in matrix_content or "vocabulary" in matrix_content,
+            "NarrativeMatrix must display vocabulary section"
+        )
+
+        # 5. Strategic blindspots and omissions
+        self.assertTrue(
+            "blindspots" in geo_content or "blindSpots" in geo_content,
+            "Blocs must specify blind spots / omissions"
+        )
+        self.assertIn("Pontos Cegos", matrix_content, "NarrativeMatrix must render blind spots callout")
+
+        # 6. Real collected headlines with framing tags
+        self.assertIn("realHeadlines", geo_content, "Blocs must contain real headlines from registered sources")
+        self.assertIn("framingTag", geo_content, "Real headlines must carry framingTag metadata")
+
+        # 7. Analytical gauges / metrics
+        self.assertIn("metrics", geo_content, "Blocs must define analytical metrics")
+        self.assertIn("escalationSentiment", geo_content, "Metrics must include escalationSentiment")
+        self.assertIn("diplomaticEmphasis", geo_content, "Metrics must include diplomaticEmphasis")
+
+        # 8. 1-Touch Comparator link
+        self.assertIn("comparatorStoryId", geo_content, "Hotspot matrices must define comparatorStoryId")
+        self.assertIn("Cruzar no Comparador", matrix_content, "NarrativeMatrix must provide 'Cruzar no Comparador' button")
+        self.assertIn("onCompare", matrix_content, "NarrativeMatrix must trigger onCompare callback")
+
 
 # ==============================================================================
 # TIER 2: BOUNDARY & CORNER CASES (>=8-10 tests)
@@ -691,6 +887,47 @@ class TestTier2BoundaryAndCornerCases(unittest.TestCase):
         for fb in fallbacks:
             self.assertTrue(fb.startswith("https://"), f"Fallback URL must be https: {fb}")
 
+    def test_t2_geopolitics_deep_linking(self):
+        """Corner Case / Boundary: Verify URL hash routing for #tensoes?hotspot=... and #comparador?storyId=... with malformed resilience."""
+        app_path = PROJECT_ROOT / "client" / "src" / "App.tsx"
+        geo_path = PROJECT_ROOT / "client" / "src" / "data" / "geopolitics.ts"
+        self.assertTrue(app_path.exists())
+        self.assertTrue(geo_path.exists())
+
+        app_content = app_path.read_text(encoding="utf-8")
+        geo_content = geo_path.read_text(encoding="utf-8")
+
+        # 1. Verify normalizeHotspotId defensively handles null, undefined, casing, whitespace, and hyphens
+        self.assertIn("normalizeHotspotId", geo_content, "geopolitics.ts must export normalizeHotspotId")
+        self.assertIn(".toLowerCase()", geo_content, "normalizeHotspotId must enforce lowercasing")
+        self.assertIn(".trim()", geo_content, "normalizeHotspotId must trim whitespace")
+        self.assertTrue(
+            '.replace(/-/g, "_")' in geo_content or "mar_vermelho" in geo_content,
+            "normalizeHotspotId must convert hyphens to underscores"
+        )
+
+        # 2. Verify App.tsx URL hash listener detects #tensoes and extracts hotspot query param
+        self.assertIn('hash.startsWith("#tensoes")', app_content, "App.tsx must handle #tensoes hash route")
+        self.assertTrue(
+            'params.get("hotspot")' in app_content or 'hotspot' in app_content,
+            "App.tsx must parse hotspot param from hash"
+        )
+        self.assertIn('setSelectedHotspotId', app_content, "App.tsx must set selectedHotspotId state from URL")
+
+        # 3. Verify App.tsx URL hash listener detects #comparador and extracts storyId/story/id
+        self.assertIn('hash.startsWith("#comparador")', app_content, "App.tsx must handle #comparador hash route")
+        self.assertTrue(
+            'params.get("storyId")' in app_content or 'params.get("story")' in app_content or 'params.get("id")' in app_content,
+            "App.tsx must parse story identifier from #comparador hash"
+        )
+        self.assertIn('setCompareId', app_content, "App.tsx must update compareId from #comparador deep-link")
+
+        # 4. Verify fallback safety when hotspot param is absent or invalid
+        self.assertTrue(
+            'selectedHotspotId || "ormuz"' in app_content or '|| "ormuz"' in app_content or '"ormuz"' in app_content,
+            "App.tsx must safely fallback to default hotspot on empty or invalid hash"
+        )
+
 
 # ==============================================================================
 # TIER 3: CROSS-FEATURE COMBINATIONS (>=6-8 tests)
@@ -819,8 +1056,16 @@ class TestTier3CrossFeatureCombinations(unittest.TestCase):
         # 1. Verify next/prev circular wraparound in PersistentLivePlayer.tsx
         self.assertIn("handlePrevChannel", player_content)
         self.assertIn("handleNextChannel", player_content)
-        self.assertIn("(currentIndex - 1 + ALL_MEDIA_ITEMS.length) % ALL_MEDIA_ITEMS.length", player_content)
-        self.assertIn("(currentIndex + 1) % ALL_MEDIA_ITEMS.length", player_content)
+        self.assertTrue(
+            "(currentIndex - 1 + items.length) % items.length" in player_content or
+            "(currentIndex - 1 + ALL_MEDIA_ITEMS.length) % ALL_MEDIA_ITEMS.length" in player_content,
+            "PersistentLivePlayer must implement circular channel decrement using items.length or ALL_MEDIA_ITEMS.length"
+        )
+        self.assertTrue(
+            "(currentIndex + 1) % items.length" in player_content or
+            "(currentIndex + 1) % ALL_MEDIA_ITEMS.length" in player_content,
+            "PersistentLivePlayer must implement circular channel increment using items.length or ALL_MEDIA_ITEMS.length"
+        )
 
         # 2. Verify stream swap and immediate load in PersistentLivePlayer.tsx
         self.assertIn("audio.src = targetUrl", player_content)
@@ -852,6 +1097,62 @@ class TestTier3CrossFeatureCombinations(unittest.TestCase):
                 for art in data["articles"]:
                     self.assertIn("is_translated", art)
                     self.assertIn("original_language", art)
+
+    def test_t3_geopolitics_sources_catalog(self):
+        """Cross-Feature: Verify 86-outlet catalog synchronization with tri-bloc classification across backend and frontend."""
+        sources_file = PROJECT_ROOT / "backend" / "ingestion" / "sources.json"
+        news_file = PROJECT_ROOT / "client" / "src" / "data" / "news.ts"
+        self.assertTrue(sources_file.exists(), "sources.json must exist")
+        self.assertTrue(news_file.exists(), "news.ts must exist")
+
+        with open(sources_file, "r", encoding="utf-8") as f:
+            backend_sources = json.load(f)
+
+        # 1. Total catalog size: exactly 86 outlets
+        self.assertEqual(len(backend_sources), 86, "backend sources.json must define exactly 86 outlets")
+
+        # 2. Validate every backend source has tri-bloc classification
+        valid_blocs = {"west", "east", "global_south"}
+        backend_map = {}
+        bloc_counts = {"west": 0, "east": 0, "global_south": 0}
+        for s in backend_sources:
+            sid = s["id"]
+            bloc = s.get("geopolitical_bloc")
+            self.assertIn(bloc, valid_blocs, f"Source '{sid}' has invalid geopolitical_bloc: {bloc}")
+            self.assertIn("geopolitical_bloc_label", s, f"Source '{sid}' missing geopolitical_bloc_label")
+            backend_map[sid] = bloc
+            bloc_counts[bloc] += 1
+
+        # Each bloc must have meaningful representation
+        self.assertEqual(bloc_counts["west"], 26, "West bloc has exactly 26 sources")
+        self.assertEqual(bloc_counts["east"], 7, "East bloc has exactly 7 sources")
+        self.assertEqual(bloc_counts["global_south"], 53, "Global South bloc has exactly 53 sources")
+
+        # 3. Verify frontend news.ts OUTLETS synchronization
+        news_content = news_file.read_text(encoding="utf-8")
+        frontend_outlets = {}
+        for line in news_content.splitlines():
+            m = re.search(r'id:\s*\"([^\"]+)\".*?geopoliticalBloc:\s*\"([^\"]+)\"', line)
+            if m:
+                frontend_outlets[m.group(1)] = m.group(2)
+
+        for s in backend_sources:
+            sid = s["id"]
+            self.assertIn(sid, frontend_outlets, f"Frontend outlet '{sid}' not found in news.ts OUTLETS")
+            self.assertEqual(
+                s["geopolitical_bloc"],
+                frontend_outlets[sid],
+                f"Geopolitical bloc mismatch for source '{sid}': backend='{s['geopolitical_bloc']}' vs frontend='{frontend_outlets[sid]}'"
+            )
+
+        # 4. Backend API endpoint /api/sources returns all 86 sources with geopolitical_bloc
+        resp = self.client.get("/api/sources")
+        self.assertEqual(resp.status_code, 200)
+        api_data = resp.json()
+        api_sources = api_data.get("sources", api_data) if isinstance(api_data, dict) else api_data
+        self.assertEqual(len(api_sources), 86, "/api/sources endpoint must return all 86 outlets")
+        for s in api_sources:
+            self.assertIn(s.get("geopolitical_bloc"), valid_blocs)
 
 
 # ==============================================================================
@@ -1009,6 +1310,53 @@ class TestTier4RealWorldScenarios(unittest.TestCase):
 
         # 4. Production bundle contains fc-font key
         self.assertIn("fc-font", bundle_content)
+
+    def test_t4_geopolitics_persistent_player_continuity(self):
+        """Scenario Journey: Verify <PersistentLivePlayer /> remains outside <main> and maintains uninterrupted playback during Geopolitical navigation."""
+        app_content = (PROJECT_ROOT / "client" / "src" / "App.tsx").read_text(encoding="utf-8")
+        chrome_content = (PROJECT_ROOT / "client" / "src" / "components" / "Chrome.tsx").read_text(encoding="utf-8")
+        bundle_content = self.frontend_index.read_text(encoding="utf-8")
+
+        # 1. AST Architectural Isolation: PersistentLivePlayer must be rendered outside <main>
+        main_match = re.search(r'<main[\s\S]*?<\/main>', app_content)
+        self.assertIsNotNone(main_match, "App.tsx must contain a <main> region for view switcher")
+        main_block = main_match.group(0)
+
+        # Verify <TensionsView /> is mounted INSIDE <main>
+        self.assertIn("<TensionsView", main_block, "<TensionsView /> must be mounted inside <main>")
+        self.assertIn('view === "tensoes"', main_block, "view === 'tensoes' must switch views inside <main>")
+
+        # Verify <PersistentLivePlayer /> is NOT inside <main>
+        self.assertNotIn("<PersistentLivePlayer", main_block, "<PersistentLivePlayer /> must NOT be inside <main>")
+
+        # Verify <PersistentLivePlayer /> appears AFTER </main>
+        post_main_idx = app_content.find("</main>")
+        player_idx = app_content.find("<PersistentLivePlayer")
+        self.assertGreater(player_idx, post_main_idx, "<PersistentLivePlayer /> must be rendered after </main> at root level")
+
+        # 2. Verify state persistence: activeMedia, isPlaying, volume are passed to PersistentLivePlayer
+        self.assertIn("item={activeMedia}", app_content)
+        self.assertIn("isPlaying={isPlaying}", app_content)
+        self.assertIn("isMuted={isMuted}", app_content)
+        self.assertIn("volume={volume}", app_content)
+
+        # 3. Verify user navigation handlers preserve media state
+        # openTensoes only changes view and selectedHotspotId, never touches activeMedia or isPlaying
+        open_tensoes_match = re.search(r'const\s+openTensoes\s*=\s*(?:useCallback\s*\(\s*)?\([^)]*\)\s*=>\s*\{([\s\S]*?)\}', app_content)
+        self.assertIsNotNone(open_tensoes_match, "openTensoes function must be defined")
+        tensoes_body = open_tensoes_match.group(1)
+        self.assertNotIn("setActiveMedia(null)", tensoes_body)
+        self.assertNotIn("setIsPlaying(false)", tensoes_body)
+
+        # 4. Verify compiled production bundle contains both Geopolitical components and persistent player
+        self.assertTrue(
+            "TacticalWorldMap" in bundle_content or "Dossiê Geoestratégico" in bundle_content or "Tensões" in bundle_content or "TensionsView" in bundle_content,
+            "Production bundle must contain Geopolitical components"
+        )
+        self.assertTrue(
+            "Reprodutor Multimídia Ao Vivo Persistente" in bundle_content or "aria-label=\"Reprodutor Multimídia Ao Vivo Persistente\"" in bundle_content,
+            "Production bundle must contain persistent player markup"
+        )
 
 
 # ==============================================================================

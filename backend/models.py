@@ -36,6 +36,8 @@ class SourceItem(BaseModel):
     spectrum_code: Optional[str] = None
     country: Optional[str] = "BR"
     language: Optional[str] = "pt"
+    geopolitical_bloc: Optional[str] = None
+    geopolitical_bloc_label: Optional[str] = None
 
 
 class SourcesResponse(BaseModel):

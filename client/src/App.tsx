@@ -9,16 +9,19 @@ import LiveMediaView from "./components/LiveMediaView";
 import PersistentLivePlayer from "./components/PersistentLivePlayer";
 import RadarView from "./components/RadarView";
 import Reader from "./components/Reader";
+import TensionsView from "./components/geopolitics/TensionsView";
+import { normalizeHotspotId } from "./data/geopolitics";
 import { SavedDrawer, SearchModal } from "./components/Overlays";
 import { usePWAInstall, PWAInstallBanner, IOSInstallModal } from "./components/PWAInstall";
 import { loadLS } from "./components/ui";
 
-export type View = "capa" | "comparador" | "radar" | "aovivo" | (string & {});
+export type View = "capa" | "comparador" | "tensoes" | "radar" | "aovivo" | (string & {});
 
 export default function App() {
   const [stories, setStories] = useState<Story[]>(STORIES);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("capa");
+  const [selectedHotspotId, setSelectedHotspotId] = useState<string>("ormuz");
   const [compareId, setCompareId] = useState(COVER_STORY.id);
   const [focusOutlet, setFocusOutlet] = useState<string | null>(null);
   const [readerId, setReaderId] = useState<string | null>(null);
@@ -178,6 +181,15 @@ export default function App() {
     setFocusOutlet(outlet ?? null);
     setView("comparador");
     window.scrollTo({ top: 0 });
+    try {
+      if (id) {
+        window.history.replaceState(null, "", `#comparador?storyId=${id}`);
+      } else {
+        window.history.replaceState(null, "", `#comparador`);
+      }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const openAoVivo = useCallback(() => {
@@ -190,16 +202,69 @@ export default function App() {
     window.scrollTo({ top: 0 });
   }, []);
 
+  const openTensoes = useCallback((hotspotId?: string) => {
+    if (hotspotId) {
+      setSelectedHotspotId(normalizeHotspotId(hotspotId));
+    }
+    setView("tensoes");
+    window.scrollTo({ top: 0 });
+    try {
+      const target = hotspotId ? normalizeHotspotId(hotspotId) : selectedHotspotId;
+      window.history.replaceState(null, "", `#tensoes?hotspot=${target}`);
+    } catch {
+      /* ignore */
+    }
+  }, [selectedHotspotId]);
+
+  /* Suporte a Deep-Linking via URL Hash (#tensoes?hotspot=...) */
+  useEffect(() => {
+    const handleHash = () => {
+      try {
+        const hash = window.location.hash || "";
+        if (hash.startsWith("#tensoes")) {
+          const queryIdx = hash.indexOf("?");
+          if (queryIdx >= 0) {
+            const params = new URLSearchParams(hash.slice(queryIdx + 1));
+            const hs = params.get("hotspot");
+            if (hs) setSelectedHotspotId(normalizeHotspotId(hs));
+          }
+          setView("tensoes");
+        } else if (hash === "#radar") {
+          setView("radar");
+        } else if (hash === "#aovivo") {
+          setView("aovivo");
+        } else if (hash.startsWith("#comparador")) {
+          const queryIdx = hash.indexOf("?");
+          if (queryIdx >= 0) {
+            const params = new URLSearchParams(hash.slice(queryIdx + 1));
+            const story = params.get("storyId") || params.get("id") || params.get("story");
+            if (story) setCompareId(story);
+          }
+          setView("comparador");
+        } else if (hash === "#capa") {
+          setView("capa");
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    handleHash();
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
+  }, []);
+
   const handleNav = useCallback((v: View) => {
     if (v === "capa") openCapa();
     else if (v === "comparador") openComparador();
+    else if (v === "tensoes") openTensoes();
     else if (v === "radar") openRadar();
     else if (v === "aovivo") openAoVivo();
     else {
       setView(v);
       window.scrollTo({ top: 0 });
     }
-  }, [openComparador, openRadar, openAoVivo]);
+  }, [openComparador, openTensoes, openRadar, openAoVivo]);
 
   /* Controles táteis da Central Ao Vivo e Mini-Player */
   const handleTogglePlay = useCallback(() => {
@@ -294,6 +359,21 @@ export default function App() {
             stories={stories}
             onSelect={setCompareId}
             initialOutlet={focusOutlet}
+            onRead={setReaderId}
+          />
+        ) : view === "tensoes" ? (
+          <TensionsView
+            stories={stories}
+            selectedHotspotId={selectedHotspotId}
+            onSelectHotspot={(id) => {
+              setSelectedHotspotId(normalizeHotspotId(id));
+              try {
+                window.history.replaceState(null, "", `#tensoes?hotspot=${normalizeHotspotId(id)}`);
+              } catch {
+                /* ignore */
+              }
+            }}
+            onCompare={openComparador}
             onRead={setReaderId}
           />
         ) : view === "radar" ? (

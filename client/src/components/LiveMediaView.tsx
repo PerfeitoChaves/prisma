@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  ExternalLink,
   Pause,
   Play,
   Radio,
@@ -16,6 +17,7 @@ import { cn } from "../utils/cn";
 export interface LiveMediaViewProps {
   activeItem: LiveMediaItem | null;
   isPlaying: boolean;
+  tvChannels?: LiveMediaItem[];
   onSelectChannel: (item: LiveMediaItem) => void;
   onTogglePlay: () => void;
 }
@@ -23,12 +25,14 @@ export interface LiveMediaViewProps {
 export default function LiveMediaView({
   activeItem,
   isPlaying,
+  tvChannels,
   onSelectChannel,
   onTogglePlay,
 }: LiveMediaViewProps) {
   const [filterType, setFilterType] = useState<"all" | "tv" | "radio">("all");
 
-  const displayedTv = filterType === "radio" ? [] : TV_CHANNELS;
+  const tvList = tvChannels && tvChannels.length > 0 ? tvChannels : TV_CHANNELS;
+  const displayedTv = filterType === "radio" ? [] : tvList;
   const displayedRadio = filterType === "tv" ? [] : RADIO_STATIONS;
 
   const handleCardClick = (item: LiveMediaItem) => {
@@ -75,7 +79,7 @@ export default function LiveMediaView({
                   : "text-ink3 hover:text-ink"
               )}
             >
-              Todos ({TV_CHANNELS.length + RADIO_STATIONS.length})
+              Todos ({tvList.length + RADIO_STATIONS.length})
             </button>
             <button
               onClick={() => setFilterType("tv")}
@@ -87,7 +91,7 @@ export default function LiveMediaView({
               )}
             >
               <Tv className="h-3.5 w-3.5" />
-              <span>TV ({TV_CHANNELS.length})</span>
+              <span>TV ({tvList.length})</span>
             </button>
             <button
               onClick={() => setFilterType("radio")}
@@ -115,7 +119,7 @@ export default function LiveMediaView({
                 Canais de Notícias da Televisão (24 Horas)
               </h2>
             </div>
-            <span className="font-mono text-xs text-ink3">6 Canais Disponíveis</span>
+            <span className="font-mono text-xs text-ink3">{tvList.length} Canais Disponíveis</span>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -178,32 +182,48 @@ export default function LiveMediaView({
                       )}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCardClick(tv);
-                      }}
-                      className={cn(
-                        "flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-bold shadow-sm transition-all",
-                        isCurrentlyPlaying
-                          ? "bg-press text-paper2 hover:bg-press/90"
-                          : "bg-ink text-paper2 hover:bg-ink/80 group-hover:scale-105"
+                    <div className="flex items-center gap-1.5">
+                      {tv.watchUrl && (
+                        <a
+                          href={tv.watchUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex h-8 items-center gap-1 rounded-xl border border-rule bg-paper px-2.5 text-xs font-bold text-ink2 transition-all hover:border-press hover:text-press hover:bg-press/5 shadow-sm active:scale-95"
+                          title="Abrir diretamente no YouTube (App ou Web)"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          <span>YouTube</span>
+                        </a>
                       )}
-                      aria-label={`${isCurrentlyPlaying ? "Pausar" : "Assistir"} ${tv.name}`}
-                    >
-                      {isCurrentlyPlaying ? (
-                        <>
-                          <Pause className="h-3 w-3 fill-current" />
-                          <span>Pausar</span>
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-3 w-3 fill-current" />
-                          <span>Assistir</span>
-                        </>
-                      )}
-                    </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCardClick(tv);
+                        }}
+                        className={cn(
+                          "flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-bold shadow-sm transition-all",
+                          isCurrentlyPlaying
+                            ? "bg-press text-paper2 hover:bg-press/90"
+                            : "bg-ink text-paper2 hover:bg-ink/80 group-hover:scale-105"
+                        )}
+                        aria-label={`${isCurrentlyPlaying ? "Pausar" : "Assistir"} ${tv.name}`}
+                      >
+                        {isCurrentlyPlaying ? (
+                          <>
+                            <Pause className="h-3 w-3 fill-current" />
+                            <span>Pausar</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="h-3 w-3 fill-current" />
+                            <span>Assistir</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

@@ -16,9 +16,14 @@ export interface LiveMediaItem {
   description?: string;
   badge?: string;
   frequencyOrDial?: string;
+  channelId?: string;
   youtubeId?: string;
+  videoId?: string;
+  watchUrl?: string;
+  directLiveUrl?: string;
   fallbackUrl?: string;
   accentColor?: string;
+  isLive?: boolean;
 }
 
 export const TV_CHANNELS: LiveMediaItem[] = [
@@ -28,8 +33,12 @@ export const TV_CHANNELS: LiveMediaItem[] = [
     type: "tv",
     category: "Notícias & Política",
     embedType: "youtube",
-    streamUrl: "https://www.youtube-nocookie.com/embed/live_stream?channel=UCoa-D_VfMkFrCYodrOC9-mA&autoplay=1&mute=0&enablejsapi=1",
-    youtubeId: "UCoa-D_VfMkFrCYodrOC9-mA",
+    channelId: "UCoa-D_VfMkFrCYodrOC9-mA",
+    youtubeId: "BoYgLl3-fl8",
+    videoId: "BoYgLl3-fl8",
+    streamUrl: "https://www.youtube-nocookie.com/embed/BoYgLl3-fl8?autoplay=1&mute=0&enablejsapi=1",
+    watchUrl: "https://www.youtube.com/watch?v=BoYgLl3-fl8",
+    directLiveUrl: "https://www.youtube.com/channel/UCoa-D_VfMkFrCYodrOC9-mA/live",
     city: "São Paulo, SP",
     description: "Jornalismo 24 horas do Grupo Bandeirantes com hard news e cobertura política em tempo real.",
     badge: "24h Ao Vivo",
@@ -41,8 +50,12 @@ export const TV_CHANNELS: LiveMediaItem[] = [
     type: "tv",
     category: "Hard News & Economia",
     embedType: "youtube",
-    streamUrl: "https://www.youtube-nocookie.com/embed/live_stream?channel=UC-9lKusIRrNK3KcU-Jvn8yg&autoplay=1&mute=0&enablejsapi=1",
-    youtubeId: "UC-9lKusIRrNK3KcU-Jvn8yg",
+    channelId: "UC-9lKusIRrNK3KcU-Jvn8yg",
+    youtubeId: "srk_o2ar7A8",
+    videoId: "srk_o2ar7A8",
+    streamUrl: "https://www.youtube-nocookie.com/embed/srk_o2ar7A8?autoplay=1&mute=0&enablejsapi=1",
+    watchUrl: "https://www.youtube.com/watch?v=srk_o2ar7A8",
+    directLiveUrl: "https://www.youtube.com/channel/UC-9lKusIRrNK3KcU-Jvn8yg/live",
     city: "São Paulo, SP",
     description: "Cobertura ao vivo dos principais fatos do Brasil e do mundo, economia, análise e bastidores de Brasília.",
     badge: "Ao Vivo",
@@ -54,8 +67,12 @@ export const TV_CHANNELS: LiveMediaItem[] = [
     type: "tv",
     category: "Notícias Gerais",
     embedType: "youtube",
-    streamUrl: "https://www.youtube-nocookie.com/embed/live_stream?channel=UC-QtjiJJdwBiOKgkf9hIVSQ&autoplay=1&mute=0&enablejsapi=1",
-    youtubeId: "UC-QtjiJJdwBiOKgkf9hIVSQ",
+    channelId: "UC-QtjiJJdwBiOKgkf9hIVSQ",
+    youtubeId: "jFoOIWI2Ejs",
+    videoId: "jFoOIWI2Ejs",
+    streamUrl: "https://www.youtube-nocookie.com/embed/jFoOIWI2Ejs?autoplay=1&mute=0&enablejsapi=1",
+    watchUrl: "https://www.youtube.com/watch?v=jFoOIWI2Ejs",
+    directLiveUrl: "https://www.youtube.com/channel/UC-QtjiJJdwBiOKgkf9hIVSQ/live",
     city: "São Paulo, SP",
     description: "Primeiro canal aberto de notícias 24 horas da televisão brasileira com foco em fatos e utilidade pública.",
     badge: "TV Aberta",
@@ -67,10 +84,14 @@ export const TV_CHANNELS: LiveMediaItem[] = [
     type: "tv",
     category: "Opinião & Notícias",
     embedType: "youtube",
-    streamUrl: "https://www.youtube-nocookie.com/embed/live_stream?channel=UCP391YRAjSOdM_bwievgaZA&autoplay=1&mute=0&enablejsapi=1",
-    youtubeId: "UCP391YRAjSOdM_bwievgaZA",
+    channelId: "UCP391YRAjSOdM_bwievgaZA",
+    youtubeId: "qveN6Hy183o",
+    videoId: "qveN6Hy183o",
+    streamUrl: "https://www.youtube-nocookie.com/embed/qveN6Hy183o?autoplay=1&mute=0&enablejsapi=1",
+    watchUrl: "https://www.youtube.com/watch?v=qveN6Hy183o",
+    directLiveUrl: "https://www.youtube.com/channel/UCP391YRAjSOdM_bwievgaZA/live",
     city: "São Paulo, SP",
-    description: "Transmissão contínua com debates acalorados, comentários políticos e cobertura de plantão.",
+    description: "Transmissão contínua com debates, comentários políticos e cobertura de plantão.",
     badge: "Ao Vivo",
     accentColor: "#ea580c",
   },
@@ -79,10 +100,14 @@ export const TV_CHANNELS: LiveMediaItem[] = [
     name: "TV Brasil",
     type: "tv",
     category: "Pública & Cidadania",
-    embedType: "hls",
-    streamUrl: "https://tvbrasil-stream.ebc.com.br/index.m3u8",
-    fallbackUrl: "https://www.youtube-nocookie.com/embed/live_stream?channel=UCSv9d0kQegylHWpP83jWSQg&autoplay=1&mute=0&enablejsapi=1",
-    youtubeId: "UCSv9d0kQegylHWpP83jWSQg",
+    embedType: "youtube",
+    channelId: "UCSv9d0kQegylHWpP83jWSQg",
+    youtubeId: "PgW00_-a8RM",
+    videoId: "PgW00_-a8RM",
+    streamUrl: "https://www.youtube-nocookie.com/embed/PgW00_-a8RM?autoplay=1&mute=0&enablejsapi=1",
+    watchUrl: "https://www.youtube.com/watch?v=PgW00_-a8RM",
+    directLiveUrl: "https://www.youtube.com/channel/UCSv9d0kQegylHWpP83jWSQg/live",
+    fallbackUrl: "https://tvbrasil-stream.ebc.com.br/index.m3u8",
     city: "Brasília, DF",
     description: "Emissora pública da EBC com transmissões institucionais, cultura, cidadania e cobertura ministerial.",
     badge: "EBC Aberta",
@@ -94,14 +119,20 @@ export const TV_CHANNELS: LiveMediaItem[] = [
     type: "tv",
     category: "Plantão & Fatos",
     embedType: "youtube",
-    streamUrl: "https://www.youtube-nocookie.com/embed/live_stream?channel=UCQD_Fq8NZXbHz9LI8Fa1Q9A&autoplay=1&mute=0&enablejsapi=1",
-    youtubeId: "UCQD_Fq8NZXbHz9LI8Fa1Q9A",
+    channelId: "UCQD_Fq8NZXbHz9LI8Fa1Q9A",
+    youtubeId: "plPMJ0ST8m4",
+    videoId: "plPMJ0ST8m4",
+    streamUrl: "https://www.youtube-nocookie.com/embed/plPMJ0ST8m4?autoplay=1&mute=0&enablejsapi=1",
+    watchUrl: "https://www.youtube.com/watch?v=plPMJ0ST8m4",
+    directLiveUrl: "https://www.youtube.com/channel/UCQD_Fq8NZXbHz9LI8Fa1Q9A/live",
     city: "São Paulo, SP",
     description: "Transmissão digital contínua 24h com plantões, entrevistas e notícias ao vivo do SBT.",
     badge: "Digital 24h",
     accentColor: "#0284c7",
   },
 ];
+
+
 
 export const RADIO_STATIONS: LiveMediaItem[] = [
   {

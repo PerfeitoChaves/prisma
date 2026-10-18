@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { COVER_STORY, STORIES, type Story } from "./data/news";
-import { DEFAULT_MEDIA_ITEM, type LiveMediaItem } from "./data/media";
+import { DEFAULT_MEDIA_ITEM, RADIO_STATIONS, TV_CHANNELS, type LiveMediaItem } from "./data/media";
 import { mapApiStoryToStory, type ApiStory } from "./utils/storyMapper";
 import { Dock, TopBar } from "./components/Chrome";
 import CoverPage from "./components/CoverPage";
@@ -48,13 +48,25 @@ export default function App() {
   };
 
   /* Estado persistente da Central Multimídia Ao Vivo */
+  const [tvChannels, setTvChannels] = useState<LiveMediaItem[]>(TV_CHANNELS);
+  const allMediaItems = useMemo(() => [...tvChannels, ...RADIO_STATIONS], [tvChannels]);
   const [activeMedia, setActiveMedia] = useState<LiveMediaItem | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0.85);
   const [previousVolume, setPreviousVolume] = useState(0.85);
 
-  /* Carrega notícias reais do banco FastAPI (/api/stories) */
+  /* Mantém o canal sintonizado sincronizado caso os IDs de vídeo sejam atualizados dinamicamente */
+  useEffect(() => {
+    if (activeMedia && activeMedia.type === "tv") {
+      const updated = tvChannels.find((c) => c.id === activeMedia.id);
+      if (updated && (updated.streamUrl !== activeMedia.streamUrl || updated.watchUrl !== activeMedia.watchUrl)) {
+        setActiveMedia((prev) => (prev ? { ...prev, ...updated } : null));
+      }
+    }
+  }, [tvChannels, activeMedia]);
+
+  /* Carrega notícias reais do banco FastAPI (/api/stories) e lives dinâmicas */
   useEffect(() => {
     let mounted = true;
     async function loadApiStories() {
@@ -68,14 +80,34 @@ export default function App() {
           // ambiente estático (GitHub Pages)
         }
 
+        // Tenta carregar canais de TV ao vivo dinâmicos da API local
+        try {
+          const liveRes = await fetch("/api/live/channels");
+          if (liveRes.ok) {
+            const liveData = await liveRes.json();
+            if (liveData && Array.isArray(liveData.channels) && liveData.channels.length > 0 && mounted) {
+              setTvChannels(liveData.channels);
+            }
+          }
+        } catch {
+          // ambiente estático
+        }
+
         // 2. Se a API não estiver disponível (GitHub Pages), puxa o feed dinâmico atualizado pelo GitHub Actions
         if (!data || !data.stories || data.stories.length === 0) {
           try {
             const staticRes = await fetch("./data/latest.json?t=" + Date.now());
-            if (staticRes.ok) data = await staticRes.json();
+            if (staticRes.ok) {
+              data = await staticRes.json();
+              if (data && Array.isArray(data.live_channels) && data.live_channels.length > 0 && mounted) {
+                setTvChannels(data.live_channels);
+              }
+            }
           } catch {
             // offline ou sem rede
           }
+        } else if (data && Array.isArray(data.live_channels) && data.live_channels.length > 0 && mounted) {
+          setTvChannels(data.live_channels);
         }
 
         if (data && data.stories && Array.isArray(data.stories) && data.stories.length > 0) {
@@ -275,6 +307,7 @@ export default function App() {
           <LiveMediaView
             activeItem={activeMedia}
             isPlaying={isPlaying}
+            tvChannels={tvChannels}
             onSelectChannel={handleSelectChannel}
             onTogglePlay={handleTogglePlay}
           />
@@ -287,6 +320,7 @@ export default function App() {
         isPlaying={isPlaying}
         isMuted={isMuted}
         volume={volume}
+        mediaItems={allMediaItems}
         onTogglePlay={handleTogglePlay}
         onToggleMute={handleToggleMute}
         onVolumeChange={handleVolumeChange}

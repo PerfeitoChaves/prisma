@@ -27,6 +27,7 @@ from backend.analysis.reader import get_article_reading_view
 from backend.analysis.story_compiler import compile_story_summary
 from backend.analysis.bias_detector import calculate_spectrum_and_blindspots
 from backend.analysis.neutral_synthesizer import generate_story_synthesis
+from backend.ingestion.youtube_live import resolve_live_channels
 
 router = APIRouter(prefix="/api")
 
@@ -624,6 +625,15 @@ async def list_trends(refresh: bool = Query(False, description="Forçar atualiza
     _TRENDS_CACHE["timestamp"] = now
     _TRENDS_CACHE["data"] = response_data
     return response_data
+
+@router.get("/live/channels")
+async def get_live_channels(refresh: bool = Query(False, description="Forçar resolução das transmissões ao vivo")):
+    """Retorna a grade de canais de TV ao vivo com seus IDs de vídeo do YouTube em tempo real."""
+    channels = await resolve_live_channels(force_refresh=refresh)
+    return {
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "channels": channels
+    }
 
 @router.get("/stats")
 async def system_stats():

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  ExternalLink,
   ListMusic,
   Maximize2,
   Minimize2,
@@ -21,6 +22,7 @@ export interface PersistentLivePlayerProps {
   isPlaying: boolean;
   isMuted: boolean;
   volume: number;
+  mediaItems?: LiveMediaItem[];
   onTogglePlay: () => void;
   onToggleMute: () => void;
   onVolumeChange: (vol: number) => void;
@@ -34,6 +36,7 @@ export default function PersistentLivePlayer({
   isPlaying,
   isMuted,
   volume,
+  mediaItems,
   onTogglePlay,
   onToggleMute,
   onVolumeChange,
@@ -47,19 +50,22 @@ export default function PersistentLivePlayer({
   const [streamError, setStreamError] = useState(false);
   const [usingFallback, setUsingFallback] = useState(false);
 
+  // Available catalog: dynamic channels if provided, else static catalog
+  const items = mediaItems && mediaItems.length > 0 ? mediaItems : ALL_MEDIA_ITEMS;
+
   // Determine current channel index in catalog for skip next/prev
-  const currentIndex = item ? ALL_MEDIA_ITEMS.findIndex((m) => m.id === item.id) : -1;
+  const currentIndex = item ? items.findIndex((m) => m.id === item.id) : -1;
 
   const handlePrevChannel = () => {
-    if (ALL_MEDIA_ITEMS.length === 0) return;
-    const prevIdx = (currentIndex - 1 + ALL_MEDIA_ITEMS.length) % ALL_MEDIA_ITEMS.length;
-    onSelectChannel(ALL_MEDIA_ITEMS[prevIdx]);
+    if (items.length === 0) return;
+    const prevIdx = (currentIndex - 1 + items.length) % items.length;
+    onSelectChannel(items[prevIdx]);
   };
 
   const handleNextChannel = () => {
-    if (ALL_MEDIA_ITEMS.length === 0) return;
-    const nextIdx = (currentIndex + 1) % ALL_MEDIA_ITEMS.length;
-    onSelectChannel(ALL_MEDIA_ITEMS[nextIdx]);
+    if (items.length === 0) return;
+    const nextIdx = (currentIndex + 1) % items.length;
+    onSelectChannel(items[nextIdx]);
   };
 
   // Synchronize audio stream and playback state
@@ -208,6 +214,18 @@ export default function PersistentLivePlayer({
 
           {/* Quick Header Controls */}
           <div className="flex items-center gap-1">
+            {item.watchUrl && (
+              <a
+                href={item.watchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-ink3 transition-colors hover:bg-ink/5 hover:text-press"
+                title="Assistir no App do YouTube"
+                aria-label="Abrir transmissão no YouTube"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
             <button
               onClick={() => setShowChannelList((prev) => !prev)}
               className={cn(
@@ -244,14 +262,31 @@ export default function PersistentLivePlayer({
 
         {/* Video Screen (Only when TV and not minimized) */}
         {!isMinimized && item.type === "tv" && videoSrc && (
-          <div className="mt-2.5 overflow-hidden rounded-xl border border-rule bg-black shadow-inner aspect-video relative">
-            <iframe
-              src={videoSrc}
-              title={`Transmissão ao vivo: ${item.name}`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="h-full w-full border-0"
-            />
+          <div className="mt-2.5 space-y-1.5">
+            <div className="overflow-hidden rounded-xl border border-rule bg-black shadow-inner aspect-video relative">
+              <iframe
+                src={videoSrc}
+                title={`Transmissão ao vivo: ${item.name}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="h-full w-full border-0"
+              />
+            </div>
+            {item.watchUrl && (
+              <div className="flex items-center justify-between px-1 text-[10px] text-ink3">
+                <span className="truncate">{item.city} · Ao Vivo Oficial</span>
+                <a
+                  href={item.watchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-bold text-press hover:underline shrink-0"
+                  title="Abrir diretamente no YouTube caso o reprodutor nativo tenha restrições"
+                >
+                  <span>Abrir no YouTube</span>
+                  <ExternalLink className="h-2.5 w-2.5" />
+                </a>
+              </div>
+            )}
           </div>
         )}
 
@@ -372,7 +407,7 @@ export default function PersistentLivePlayer({
                 Ver grade completa →
               </button>
             </div>
-            {ALL_MEDIA_ITEMS.map((m) => {
+            {items.map((m) => {
               const isCurrent = m.id === item.id;
               return (
                 <button

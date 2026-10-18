@@ -19,6 +19,7 @@ sys.path.insert(0, str(BASE_DIR))
 from backend.database import init_db, get_stories, get_database_stats
 from backend.ingestion.collector import run_collector
 from backend.analysis.clustering import run_clustering
+from backend.ingestion.youtube_live import resolve_live_channels
 
 
 async def main():
@@ -37,10 +38,14 @@ async def main():
     cluster_res = run_clustering()
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Agrupamento finalizado: {cluster_res.get('total_stories', 0)} pautas identificadas.")
 
-    # 4. Obtém as pautas consolidadas
+    # 4. Obtém as pautas consolidadas e canais ao vivo
     stories = get_stories(limit=60, min_sources=1)
     stats = get_database_stats()
     now_utc = datetime.now(timezone.utc)
+
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Resolvendo IDs de transmissões ao vivo do YouTube...")
+    live_channels = await resolve_live_channels(force_refresh=True)
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] {len(live_channels)} canais de TV ao vivo verificados.")
 
     payload = {
         "version": "1.0",
@@ -48,7 +53,8 @@ async def main():
         "updated_at_formatted": now_utc.strftime("%d/%m/%Y às %H:%M UTC"),
         "count": len(stories),
         "stories": stories,
-        "stats": stats
+        "stats": stats,
+        "live_channels": live_channels,
     }
 
     # 5. Salva o feed leve data/latest.json em docs/, frontend/ e client/public/

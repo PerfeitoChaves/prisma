@@ -10,6 +10,7 @@ import PersistentLivePlayer from "./components/PersistentLivePlayer";
 import RadarView from "./components/RadarView";
 import Reader from "./components/Reader";
 import { SavedDrawer, SearchModal } from "./components/Overlays";
+import { usePWAInstall, PWAInstallBanner, IOSInstallModal } from "./components/PWAInstall";
 import { loadLS } from "./components/ui";
 
 export type View = "capa" | "comparador" | "radar" | "aovivo" | (string & {});
@@ -25,6 +26,26 @@ export default function App() {
   const [savedOpen, setSavedOpen] = useState(false);
   const [saved, setSaved] = useState<string[]>(() => loadLS<string[]>("fc-saved", []));
   const [fontStep, setFontStep] = useState<number>(() => loadLS<number>("fc-font", 1));
+
+  /* PWA Install hook */
+  const { isInstallable, isInstalled, triggerInstall } = usePWAInstall();
+  const [showInstallBanner, setShowInstallBanner] = useState(() => {
+    try {
+      return localStorage.getItem("prisma-pwa-dismissed") !== "true";
+    } catch {
+      return true;
+    }
+  });
+  const [showIOSModal, setShowIOSModal] = useState(false);
+
+  const handleDismissInstall = () => {
+    setShowInstallBanner(false);
+    try {
+      localStorage.setItem("prisma-pwa-dismissed", "true");
+    } catch {
+      /* ignore */
+    }
+  };
 
   /* Estado persistente da Central Multimídia Ao Vivo */
   const [activeMedia, setActiveMedia] = useState<LiveMediaItem | null>(null);
@@ -199,6 +220,14 @@ export default function App() {
         savedCount={saved.length}
       />
 
+      {/* Banner de instalação PWA */}
+      {isInstallable && !isInstalled && showInstallBanner && (
+        <PWAInstallBanner
+          onInstallClick={() => triggerInstall(() => setShowIOSModal(true))}
+          onDismiss={handleDismissInstall}
+        />
+      )}
+
       <main>
         {view === "capa" ? (
           <CoverPage
@@ -290,6 +319,8 @@ export default function App() {
         onOpenStory={openFromSearch}
         onAddStories={handleAddStories}
       />
+
+      <IOSInstallModal open={showIOSModal} onClose={() => setShowIOSModal(false)} />
     </div>
   );
 }

@@ -1,0 +1,56 @@
+{
+  "name": "PRISMA — Todos os Ângulos",
+  "short_name": "PRISMA",
+  "description": "Plataforma pessoal de notícias imparciais, rádios all-news e lives de TV ao vivo.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f2ea",
+  "theme_color": "#171410",
+  "orientation": "portrait-primary",
+  "lang": "pt-BR",
+  "categories": ["news", "magazines", "multimedia"],
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Giro 2 Linhas",
+      "short_name": "Giro 2L",
+      "url": "./#capa",
+      "description": "Resumo ultra-rápido de notícias em 2 linhas",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Central Ao Vivo",
+      "short_name": "Ao Vivo",
+      "url": "./#aovivo",
+      "description": "Lives de TV e Rádios de notícias ao vivo",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Radar X",
+      "short_name": "Radar X",
+      "url": "./#radar",
+      "description": "Tendências e hashtags do X com cruzamento de notícias",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

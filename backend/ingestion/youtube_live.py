@@ -2,7 +2,7 @@
 PRISMA — Módulo de Resolução Dinâmica de Transmissões Ao Vivo do YouTube
 Resolve em tempo real os IDs de vídeo das lives 24h dos canais de televisão
 (BandNews TV, CNN Brasil, Record News, JP News, TV Brasil, SBT News)
-evitando telas de erro de vídeos inválidos ou streams descontinuados.
+evitando telas de erro de vídeos inválidos ou streams agendados/descontinuados.
 """
 
 import asyncio
@@ -11,7 +11,7 @@ import time
 from typing import List, Dict, Any, Optional
 import httpx
 
-# Catálogo mestre dos canais de TV com IDs de canal e IDs de vídeo ativos verificados
+# Catálogo mestre dos canais de TV com Handles oficiais e IDs de vídeo ativos verificados
 LIVE_CHANNELS_CONFIG = [
     {
         "id": "bandnews_tv",
@@ -19,6 +19,7 @@ LIVE_CHANNELS_CONFIG = [
         "type": "tv",
         "category": "Notícias & Política",
         "embedType": "youtube",
+        "handle": "@BandJornalismo",
         "channelId": "UCoa-D_VfMkFrCYodrOC9-mA",
         "defaultVideoId": "BoYgLl3-fl8",
         "city": "São Paulo, SP",
@@ -32,8 +33,9 @@ LIVE_CHANNELS_CONFIG = [
         "type": "tv",
         "category": "Hard News & Economia",
         "embedType": "youtube",
-        "channelId": "UC-9lKusIRrNK3KcU-Jvn8yg",
-        "defaultVideoId": "srk_o2ar7A8",
+        "handle": "@CNNBrasil",
+        "channelId": "UCvdwhh_fDyWccR42-rReZLw",
+        "defaultVideoId": "WzqCrEb_wvg",
         "city": "São Paulo, SP",
         "description": "Cobertura ao vivo dos principais fatos do Brasil e do mundo, economia, análise e bastidores de Brasília.",
         "badge": "Ao Vivo",
@@ -45,8 +47,9 @@ LIVE_CHANNELS_CONFIG = [
         "type": "tv",
         "category": "Notícias Gerais",
         "embedType": "youtube",
+        "handle": "@RecordNews",
         "channelId": "UC-QtjiJJdwBiOKgkf9hIVSQ",
-        "defaultVideoId": "jFoOIWI2Ejs",
+        "defaultVideoId": "yCfb9Na3rcI",
         "city": "São Paulo, SP",
         "description": "Primeiro canal aberto de notícias 24 horas da televisão brasileira com foco em fatos e utilidade pública.",
         "badge": "TV Aberta",
@@ -58,6 +61,7 @@ LIVE_CHANNELS_CONFIG = [
         "type": "tv",
         "category": "Opinião & Notícias",
         "embedType": "youtube",
+        "handle": "@jovempannews",
         "channelId": "UCP391YRAjSOdM_bwievgaZA",
         "defaultVideoId": "qveN6Hy183o",
         "city": "São Paulo, SP",
@@ -71,6 +75,7 @@ LIVE_CHANNELS_CONFIG = [
         "type": "tv",
         "category": "Pública & Cidadania",
         "embedType": "youtube",
+        "handle": "@tvbrasil",
         "channelId": "UCSv9d0kQegylHWpP83jWSQg",
         "defaultVideoId": "PgW00_-a8RM",
         "fallbackUrl": "https://tvbrasil-stream.ebc.com.br/index.m3u8",
@@ -85,8 +90,9 @@ LIVE_CHANNELS_CONFIG = [
         "type": "tv",
         "category": "Plantão & Fatos",
         "embedType": "youtube",
+        "handle": "@sbtnews",
         "channelId": "UCQD_Fq8NZXbHz9LI8Fa1Q9A",
-        "defaultVideoId": "plPMJ0ST8m4",
+        "defaultVideoId": "81kfSjJkAAs",
         "city": "São Paulo, SP",
         "description": "Transmissão digital contínua 24h com plantões, entrevistas e notícias ao vivo do SBT.",
         "badge": "Digital 24h",
@@ -108,10 +114,12 @@ HEADERS = {
 
 
 async def resolve_single_channel(client: httpx.AsyncClient, ch: Dict[str, Any]) -> Dict[str, Any]:
-    """Tenta obter o ID do vídeo ao vivo atual a partir de https://www.youtube.com/channel/{channelId}/live."""
-    chid = ch["channelId"]
+    """Tenta obter o ID do vídeo ao vivo atual a partir de https://www.youtube.com/{handle}/live."""
+    handle = ch.get("handle")
+    chid = ch.get("channelId")
     def_vid = ch["defaultVideoId"]
-    url = f"https://www.youtube.com/channel/{chid}/live"
+    
+    url = f"https://www.youtube.com/{handle}/live" if handle else f"https://www.youtube.com/channel/{chid}/live"
 
     vid = def_vid
     try:
@@ -122,15 +130,16 @@ async def resolve_single_channel(client: httpx.AsyncClient, ch: Dict[str, Any]) 
                 m = re.search(r'"videoId":"([a-zA-Z0-9_-]{11})"', r.text)
             if m:
                 extracted = m.group(1)
-                # Validar se o ID extraído tem 11 caracteres válidos
-                if len(extracted) == 11 and re.match(r'^[a-zA-Z0-9_-]{11}$', extracted):
+                # Verifica se é uma live agendada futura (Upcoming) em vez de ao vivo agora
+                is_upcoming = "upcomingEventData" in r.text or ("Live in " in r.text and '"isLive":true' not in r.text)
+                if not is_upcoming and len(extracted) == 11 and re.match(r'^[a-zA-Z0-9_-]{11}$', extracted):
                     vid = extracted
     except Exception as e:
         vid = def_vid
 
     stream_url = f"https://www.youtube-nocookie.com/embed/{vid}?autoplay=1&mute=0&enablejsapi=1"
     watch_url = f"https://www.youtube.com/watch?v={vid}"
-    direct_live_url = f"https://www.youtube.com/channel/{chid}/live"
+    direct_live_url = f"https://www.youtube.com/{handle}/live" if handle else f"https://www.youtube.com/channel/{chid}/live"
 
     item = {
         "id": ch["id"],
@@ -138,6 +147,7 @@ async def resolve_single_channel(client: httpx.AsyncClient, ch: Dict[str, Any]) 
         "type": ch["type"],
         "category": ch["category"],
         "embedType": ch["embedType"],
+        "handle": handle,
         "channelId": chid,
         "youtubeId": vid,
         "videoId": vid,
@@ -176,7 +186,6 @@ def resolve_live_channels_sync(force_refresh: bool = False) -> List[Dict[str, An
     try:
         loop = asyncio.get_event_loop()
         if loop.is_running():
-            # Executa num novo loop ou thread se já houver um loop rodando
             import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 return executor.submit(lambda: asyncio.run(resolve_live_channels(force_refresh))).result()

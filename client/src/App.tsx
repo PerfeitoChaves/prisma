@@ -59,10 +59,26 @@ export default function App() {
     let mounted = true;
     async function loadApiStories() {
       try {
-        const res = await fetch("/api/stories?limit=60&min_sources=1");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (data.stories && Array.isArray(data.stories) && data.stories.length > 0) {
+        let data = null;
+        // 1. Tenta API local do FastAPI (se estiver rodando com backend ativo)
+        try {
+          const res = await fetch("/api/stories?limit=60&min_sources=1");
+          if (res.ok) data = await res.json();
+        } catch {
+          // ambiente estático (GitHub Pages)
+        }
+
+        // 2. Se a API não estiver disponível (GitHub Pages), puxa o feed dinâmico atualizado pelo GitHub Actions
+        if (!data || !data.stories || data.stories.length === 0) {
+          try {
+            const staticRes = await fetch("./data/latest.json?t=" + Date.now());
+            if (staticRes.ok) data = await staticRes.json();
+          } catch {
+            // offline ou sem rede
+          }
+        }
+
+        if (data && data.stories && Array.isArray(data.stories) && data.stories.length > 0) {
           const mapped: Story[] = data.stories.map((s: ApiStory) => mapApiStoryToStory(s));
           if (mounted) {
             setStories(mapped);

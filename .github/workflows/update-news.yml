@@ -1,0 +1,73 @@
+name: Atualização Contínua do PRISMA
+
+on:
+  schedule:
+    # Executa a cada 1 hora em ponto (24 vezes ao dia)
+    - cron: '0 * * * *'
+  workflow_dispatch: # Permite acionar manualmente a qualquer momento pelo botão "Run workflow"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prisma-cron-update
+  cancel-in-progress: false
+
+jobs:
+  update-news:
+    name: Coleta, Síntese e Publicação
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 📥 Clonar repositório
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🐍 Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Instalar dependências Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🟢 Configurar Node.js 20
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'client/package-lock.json'
+
+      - name: 📦 Instalar dependências do Frontend
+        run: |
+          cd client
+          npm ci
+
+      - name: 🤖 Executar Coleta Multi-Fonte, Agrupamento e Síntese de Notícias
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          python3 scripts/update_and_publish.py
+
+      - name: 🚀 Publicar Notícias Atualizadas no GitHub Pages
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Adiciona os arquivos atualizados em docs/ e data/
+          git add docs/ frontend/ client/public/
+          
+          # Se houver alterações, realiza o commit e push
+          if git diff --staged --quiet; then
+            echo "Nenhuma matéria nova para atualizar neste ciclo."
+          else
+            git commit -m "chore(cron): atualizar notícias e compilação do PRISMA [skip ci]"
+            git push origin main
+            echo "✅ Atualização enviada com sucesso para o GitHub Pages!"
+          fi

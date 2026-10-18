@@ -71,7 +71,7 @@ async def fetch_feed(client: httpx.AsyncClient, source: Dict[str, Any]) -> List[
     articles = []
     feed_url = source.get("rss") or source.get("url")
     try:
-        timeout = httpx.Timeout(22.0, connect=10.0)
+        timeout = httpx.Timeout(12.0, connect=6.0)
         resp = await client.get(feed_url, headers=headers, timeout=timeout, follow_redirects=True)
         if resp.status_code != 200:
             print(f"[Collector] Fonte {source['name']} retornou status {resp.status_code}")
@@ -143,8 +143,8 @@ async def run_collector() -> Dict[str, Any]:
     total_saved = 0
     results_by_source = {}
     
-    # Throttle concurrency to 6 parallel requests to avoid timeouts/rate limiting
-    sem = asyncio.Semaphore(6)
+    # Throttle concurrency to 12 parallel requests to balance speed and stability
+    sem = asyncio.Semaphore(12)
     
     async def fetch_with_sem(client: httpx.AsyncClient, src: Dict[str, Any]):
         async with sem:

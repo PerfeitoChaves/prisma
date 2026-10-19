@@ -13,6 +13,7 @@ export interface CountryCapital {
   code: string;
   country: string;
   flag: string;
+  flagColor: string; // Cor primária da bandeira para iluminar as fronteiras no mapa
   capital: string;
   lat: number;
   lng: number;
@@ -21,6 +22,8 @@ export interface CountryCapital {
   region: string;
   population?: string;
   bloc?: "ocidente" | "eurasia" | "sul_global";
+  alliance?: string;
+  gdp?: string;
 }
 
 export interface MediaLocation {
@@ -91,50 +94,206 @@ export interface ExtremeWeatherAlert {
  * ===================================================================== */
 export const COUNTRIES_CAPITALS: CountryCapital[] = [
   // América do Sul
-  { code: "BR", country: "Brasil", flag: "🇧🇷", capital: "Brasília", lat: -14.235, lng: -51.925, capitalLat: -15.7975, capitalLng: -47.8919, region: "América do Sul", population: "215M", bloc: "sul_global" },
-  { code: "AR", country: "Argentina", flag: "🇦🇷", capital: "Buenos Aires", lat: -38.416, lng: -63.616, capitalLat: -34.6037, capitalLng: -58.3816, region: "América do Sul", population: "46M", bloc: "sul_global" },
-  { code: "CL", country: "Chile", flag: "🇨🇱", capital: "Santiago", lat: -35.675, lng: -71.543, capitalLat: -33.4489, capitalLng: -70.6693, region: "América do Sul", population: "19M", bloc: "sul_global" },
-  { code: "CO", country: "Colômbia", flag: "🇨🇴", capital: "Bogotá", lat: 4.5709, lng: -74.2973, capitalLat: 4.711, capitalLng: -74.0721, region: "América do Sul", population: "52M", bloc: "sul_global" },
-  { code: "VE", country: "Venezuela", flag: "🇻🇪", capital: "Caracas", lat: 6.4238, lng: -66.5897, capitalLat: 10.4806, capitalLng: -66.9036, region: "América do Sul", population: "29M", bloc: "eurasia" },
-  { code: "GY", country: "Guiana", flag: "🇬🇾", capital: "Georgetown", lat: 4.8604, lng: -58.9302, capitalLat: 6.8013, capitalLng: -58.1551, region: "América do Sul", population: "800k", bloc: "sul_global" },
+  { code: "BR", country: "Brasil", flag: "🇧🇷", flagColor: "#22c55e", capital: "Brasília", lat: -14.235, lng: -51.925, capitalLat: -15.7975, capitalLng: -47.8919, region: "América do Sul", population: "215M", bloc: "sul_global", alliance: "BRICS / G20 / Mercosul", gdp: "US$ 2.1 trilhões" },
+  { code: "AR", country: "Argentina", flag: "🇦🇷", flagColor: "#38bdf8", capital: "Buenos Aires", lat: -38.416, lng: -63.616, capitalLat: -34.6037, capitalLng: -58.3816, region: "América do Sul", population: "46M", bloc: "sul_global", alliance: "G20 / Mercosul", gdp: "US$ 640 bilhões" },
+  { code: "CL", country: "Chile", flag: "🇨🇱", flagColor: "#ef4444", capital: "Santiago", lat: -35.675, lng: -71.543, capitalLat: -33.4489, capitalLng: -70.6693, region: "América do Sul", population: "19M", bloc: "sul_global", alliance: "Aliança do Pacífico / OCDE", gdp: "US$ 340 bilhões" },
+  { code: "CO", country: "Colômbia", flag: "🇨🇴", flagColor: "#eab308", capital: "Bogotá", lat: 4.5709, lng: -74.2973, capitalLat: 4.711, capitalLng: -74.0721, region: "América do Sul", population: "52M", bloc: "sul_global", alliance: "Parceiro Global OTAN", gdp: "US$ 360 bilhões" },
+  { code: "VE", country: "Venezuela", flag: "🇻🇪", flagColor: "#eab308", capital: "Caracas", lat: 6.4238, lng: -66.5897, capitalLat: 10.4806, capitalLng: -66.9036, region: "América do Sul", population: "29M", bloc: "eurasia", alliance: "Alba / Opep / Eixo Rússia", gdp: "US$ 95 bilhões" },
+  { code: "GY", country: "Guiana", flag: "🇬🇾", flagColor: "#22c55e", capital: "Georgetown", lat: 4.8604, lng: -58.9302, capitalLat: 6.8013, capitalLng: -58.1551, region: "América do Sul", population: "800k", bloc: "sul_global", alliance: "Caricom / Commonwealth", gdp: "US$ 16 bilhões" },
   
   // América do Norte
-  { code: "US", country: "Estados Unidos", flag: "🇺🇸", capital: "Washington, D.C.", lat: 37.0902, lng: -95.7129, capitalLat: 38.9072, capitalLng: -77.0369, region: "América do Norte", population: "335M", bloc: "ocidente" },
-  { code: "CA", country: "Canadá", flag: "🇨🇦", capital: "Ottawa", lat: 56.1304, lng: -106.3468, capitalLat: 45.4215, capitalLng: -75.6972, region: "América do Norte", population: "40M", bloc: "ocidente" },
-  { code: "MX", country: "México", flag: "🇲🇽", capital: "Cidade do México", lat: 23.6345, lng: -102.5528, capitalLat: 19.4326, capitalLng: -99.1332, region: "América do Norte", population: "128M", bloc: "sul_global" },
+  { code: "US", country: "Estados Unidos", flag: "🇺🇸", flagColor: "#3b82f6", capital: "Washington, D.C.", lat: 37.0902, lng: -95.7129, capitalLat: 38.9072, capitalLng: -77.0369, region: "América do Norte", population: "335M", bloc: "ocidente", alliance: "OTAN / G7 / AUKUS / Quad", gdp: "US$ 27 trilhões" },
+  { code: "CA", country: "Canadá", flag: "🇨🇦", flagColor: "#ef4444", capital: "Ottawa", lat: 56.1304, lng: -106.3468, capitalLat: 45.4215, capitalLng: -75.6972, region: "América do Norte", population: "40M", bloc: "ocidente", alliance: "OTAN / G7 / NORAD / Five Eyes", gdp: "US$ 2.1 trilhões" },
+  { code: "MX", country: "México", flag: "🇲🇽", flagColor: "#16a34a", capital: "Cidade do México", lat: 23.6345, lng: -102.5528, capitalLat: 19.4326, capitalLng: -99.1332, region: "América do Norte", population: "128M", bloc: "sul_global", alliance: "USMCA / G20 / OCDE", gdp: "US$ 1.8 trilhão" },
 
   // Europa
-  { code: "UA", country: "Ucrânia", flag: "🇺🇦", capital: "Kiev", lat: 48.3794, lng: 31.1656, capitalLat: 50.4501, capitalLng: 30.5234, region: "Europa", population: "38M", bloc: "ocidente" },
-  { code: "RU", country: "Rússia", flag: "🇷🇺", capital: "Moscou", lat: 61.524, lng: 105.3188, capitalLat: 55.7558, capitalLng: 37.6173, region: "Eurásia", population: "144M", bloc: "eurasia" },
-  { code: "GB", country: "Reino Unido", flag: "🇬🇧", capital: "Londres", lat: 55.3781, lng: -3.436, capitalLat: 51.5074, capitalLng: -0.1278, region: "Europa", population: "67M", bloc: "ocidente" },
-  { code: "FR", country: "França", flag: "🇫🇷", capital: "Paris", lat: 46.2276, lng: 2.2137, capitalLat: 48.8566, capitalLng: 2.3522, region: "Europa", population: "68M", bloc: "ocidente" },
-  { code: "DE", country: "Alemanha", flag: "🇩🇪", capital: "Berlim", lat: 51.1657, lng: 10.4515, capitalLat: 52.52, capitalLng: 13.405, region: "Europa", population: "84M", bloc: "ocidente" },
-  { code: "IT", country: "Itália", flag: "🇮🇹", capital: "Roma", lat: 41.8719, lng: 12.5674, capitalLat: 41.9028, capitalLng: 12.4964, region: "Europa", population: "59M", bloc: "ocidente" },
-  { code: "PL", country: "Polônia", flag: "🇵🇱", capital: "Varsóvia", lat: 51.9194, lng: 19.1451, capitalLat: 52.2297, capitalLng: 21.0122, region: "Europa", population: "38M", bloc: "ocidente" },
-  { code: "TR", country: "Turquia", flag: "🇹🇷", capital: "Ancara", lat: 38.9637, lng: 35.2433, capitalLat: 39.9334, capitalLng: 32.8597, region: "Eurásia", population: "85M", bloc: "sul_global" },
+  { code: "UA", country: "Ucrânia", flag: "🇺🇦", flagColor: "#38bdf8", capital: "Kiev", lat: 48.3794, lng: 31.1656, capitalLat: 50.4501, capitalLng: 30.5234, region: "Europa", population: "38M", bloc: "ocidente", alliance: "Candidato UE / Parceria OTAN", gdp: "US$ 180 bilhões" },
+  { code: "RU", country: "Rússia", flag: "🇷🇺", flagColor: "#dc2626", capital: "Moscou", lat: 61.524, lng: 105.3188, capitalLat: 55.7558, capitalLng: 37.6173, region: "Eurásia", population: "144M", bloc: "eurasia", alliance: "OTSC / BRICS / OCS / CSNU", gdp: "US$ 2.0 trilhões" },
+  { code: "GB", country: "Reino Unido", flag: "🇬🇧", flagColor: "#dc2626", capital: "Londres", lat: 55.3781, lng: -3.436, capitalLat: 51.5074, capitalLng: -0.1278, region: "Europa", population: "67M", bloc: "ocidente", alliance: "OTAN / G7 / AUKUS / CSNU", gdp: "US$ 3.3 trilhões" },
+  { code: "FR", country: "França", flag: "🇫🇷", flagColor: "#2563eb", capital: "Paris", lat: 46.2276, lng: 2.2137, capitalLat: 48.8566, capitalLng: 2.3522, region: "Europa", population: "68M", bloc: "ocidente", alliance: "UE / OTAN / G7 / CSNU", gdp: "US$ 3.0 trilhões" },
+  { code: "DE", country: "Alemanha", flag: "🇩🇪", flagColor: "#eab308", capital: "Berlim", lat: 51.1657, lng: 10.4515, capitalLat: 52.52, capitalLng: 13.405, region: "Europa", population: "84M", bloc: "ocidente", alliance: "UE / OTAN / G7", gdp: "US$ 4.4 trilhões" },
+  { code: "IT", country: "Itália", flag: "🇮🇹", flagColor: "#16a34a", capital: "Roma", lat: 41.8719, lng: 12.5674, capitalLat: 41.9028, capitalLng: 12.4964, region: "Europa", population: "59M", bloc: "ocidente", alliance: "UE / OTAN / G7", gdp: "US$ 2.2 trilhões" },
+  { code: "PL", country: "Polônia", flag: "🇵🇱", flagColor: "#ef4444", capital: "Varsóvia", lat: 51.9194, lng: 19.1451, capitalLat: 52.2297, capitalLng: 21.0122, region: "Europa", population: "38M", bloc: "ocidente", alliance: "UE / OTAN (Flanco Leste)", gdp: "US$ 840 bilhões" },
+  { code: "TR", country: "Turquia", flag: "🇹🇷", flagColor: "#dc2626", capital: "Ancara", lat: 38.9637, lng: 35.2433, capitalLat: 39.9334, capitalLng: 32.8597, region: "Eurásia", population: "85M", bloc: "sul_global", alliance: "OTAN / G20 (Controle Bósforo)", gdp: "US$ 1.1 trilhão" },
 
   // Ásia & Oriente Médio
-  { code: "CN", country: "China", flag: "🇨🇳", capital: "Pequim", lat: 35.8617, lng: 104.1954, capitalLat: 39.9042, capitalLng: 116.4074, region: "Ásia", population: "1.4B", bloc: "eurasia" },
-  { code: "TW", country: "Taiwan", flag: "🇹🇼", capital: "Taipei", lat: 23.6978, lng: 120.9605, capitalLat: 25.033, capitalLng: 121.5654, region: "Ásia", population: "23M", bloc: "ocidente" },
-  { code: "JP", country: "Japão", flag: "🇯🇵", capital: "Tóquio", lat: 36.2048, lng: 138.2529, capitalLat: 35.6762, capitalLng: 139.6503, region: "Ásia", population: "125M", bloc: "ocidente" },
-  { code: "KR", country: "Coreia do Sul", flag: "🇰🇷", capital: "Seul", lat: 35.9078, lng: 127.7669, capitalLat: 37.5665, capitalLng: 126.978, region: "Ásia", population: "52M", bloc: "ocidente" },
-  { code: "KP", country: "Coreia do Norte", flag: "🇰🇵", capital: "Pyongyang", lat: 40.3399, lng: 127.5101, capitalLat: 39.0392, capitalLng: 125.7625, region: "Ásia", population: "26M", bloc: "eurasia" },
-  { code: "IN", country: "Índia", flag: "🇮🇳", capital: "Nova Délhi", lat: 20.5937, lng: 78.9629, capitalLat: 28.6139, capitalLng: 77.209, region: "Ásia", population: "1.42B", bloc: "sul_global" },
-  { code: "TH", country: "Tailândia", flag: "🇹🇭", capital: "Bangkok", lat: 15.87, lng: 100.9925, capitalLat: 13.7563, capitalLng: 100.5018, region: "Ásia", population: "71M", bloc: "sul_global" },
-  { code: "ID", country: "Indonésia", flag: "🇮🇩", capital: "Jacarta", lat: -0.7893, lng: 113.9213, capitalLat: -6.2088, capitalLng: 106.8456, region: "Ásia", population: "277M", bloc: "sul_global" },
-  { code: "IR", country: "Irã", flag: "🇮🇷", capital: "Teerã", lat: 32.4279, lng: 53.688, capitalLat: 35.6892, capitalLng: 51.389, region: "Oriente Médio", population: "88M", bloc: "eurasia" },
-  { code: "SA", country: "Arábia Saudita", flag: "🇸🇦", capital: "Riad", lat: 23.8859, lng: 45.0792, capitalLat: 24.7136, capitalLng: 46.6753, region: "Oriente Médio", population: "36M", bloc: "sul_global" },
-  { code: "IL", country: "Israel", flag: "🇮🇱", capital: "Jerusalém", lat: 31.0461, lng: 34.8516, capitalLat: 31.7683, capitalLng: 35.2137, region: "Oriente Médio", population: "9.7M", bloc: "ocidente" },
-  { code: "AE", country: "Emirados Árabes", flag: "🇦🇪", capital: "Abu Dhabi", lat: 23.4241, lng: 53.8478, capitalLat: 24.4539, capitalLng: 54.3773, region: "Oriente Médio", population: "10M", bloc: "sul_global" },
-  { code: "QA", country: "Catar", flag: "🇶🇦", capital: "Doha", lat: 25.3548, lng: 51.1839, capitalLat: 25.2854, capitalLng: 51.531, region: "Oriente Médio", population: "3M", bloc: "sul_global" },
-  { code: "EG", country: "Egito", flag: "🇪🇬", capital: "Cairo", lat: 26.8206, lng: 30.8025, capitalLat: 30.0444, capitalLng: 31.2357, region: "África / Oriente Médio", population: "110M", bloc: "sul_global" },
+  { code: "CN", country: "China", flag: "🇨🇳", flagColor: "#ef4444", capital: "Pequim", lat: 35.8617, lng: 104.1954, capitalLat: 39.9042, capitalLng: 116.4074, region: "Ásia", population: "1.4B", bloc: "eurasia", alliance: "BRICS / OCS / CSNU", gdp: "US$ 18 trilhões" },
+  { code: "TW", country: "Taiwan", flag: "🇹🇼", flagColor: "#3b82f6", capital: "Taipei", lat: 23.6978, lng: 120.9605, capitalLat: 25.033, capitalLng: 121.5654, region: "Ásia", population: "23M", bloc: "ocidente", alliance: "Parceria Estratégica EUA / Hub Chips", gdp: "US$ 790 bilhões" },
+  { code: "JP", country: "Japão", flag: "🇯🇵", flagColor: "#ef4444", capital: "Tóquio", lat: 36.2048, lng: 138.2529, capitalLat: 35.6762, capitalLng: 139.6503, region: "Ásia", population: "125M", bloc: "ocidente", alliance: "G7 / Quad / Aliança EUA", gdp: "US$ 4.2 trilhões" },
+  { code: "KR", country: "Coreia do Sul", flag: "🇰🇷", flagColor: "#3b82f6", capital: "Seul", lat: 35.9078, lng: 127.7669, capitalLat: 37.5665, capitalLng: 126.978, region: "Ásia", population: "52M", bloc: "ocidente", alliance: "Tratado Mútuo EUA / G20", gdp: "US$ 1.7 trilhão" },
+  { code: "KP", country: "Coreia do Norte", flag: "🇰🇵", flagColor: "#dc2626", capital: "Pyongyang", lat: 40.3399, lng: 127.5101, capitalLat: 39.0392, capitalLng: 125.7625, region: "Ásia", population: "26M", bloc: "eurasia", alliance: "Tratado Mútuo Rússia & China", gdp: "US$ 30 bilhões" },
+  { code: "IN", country: "Índia", flag: "🇮🇳", flagColor: "#f97316", capital: "Nova Délhi", lat: 20.5937, lng: 78.9629, capitalLat: 28.6139, capitalLng: 77.209, region: "Ásia", population: "1.42B", bloc: "sul_global", alliance: "BRICS / Quad / OCS / G20", gdp: "US$ 3.7 trilhões" },
+  { code: "TH", country: "Tailândia", flag: "🇹🇭", flagColor: "#dc2626", capital: "Bangkok", lat: 15.87, lng: 100.9925, capitalLat: 13.7563, capitalLng: 100.5018, region: "Ásia", population: "71M", bloc: "sul_global", alliance: "Asean / Aliado Extra-OTAN", gdp: "US$ 510 bilhões" },
+  { code: "ID", country: "Indonésia", flag: "🇮🇩", flagColor: "#ef4444", capital: "Jacarta", lat: -0.7893, lng: 113.9213, capitalLat: -6.2088, capitalLng: 106.8456, region: "Ásia", population: "277M", bloc: "sul_global", alliance: "Asean / G20 (Estreito Malaca)", gdp: "US$ 1.4 trilhão" },
+  { code: "IR", country: "Irã", flag: "🇮🇷", flagColor: "#16a34a", capital: "Teerã", lat: 32.4279, lng: 53.688, capitalLat: 35.6892, capitalLng: 51.389, region: "Oriente Médio", population: "88M", bloc: "eurasia", alliance: "Eixo de Resistência / BRICS / OCS", gdp: "US$ 400 bilhões" },
+  { code: "SA", country: "Arábia Saudita", flag: "🇸🇦", flagColor: "#15803d", capital: "Riad", lat: 23.8859, lng: 45.0792, capitalLat: 24.7136, capitalLng: 46.6753, region: "Oriente Médio", population: "36M", bloc: "sul_global", alliance: "OPEP+ / CCG / G20", gdp: "US$ 1.1 trilhão" },
+  { code: "IL", country: "Israel", flag: "🇮🇱", flagColor: "#3b82f6", capital: "Jerusalém", lat: 31.0461, lng: 34.8516, capitalLat: 31.7683, capitalLng: 35.2137, region: "Oriente Médio", population: "9.7M", bloc: "ocidente", alliance: "Aliado Maior Extra-OTAN EUA", gdp: "US$ 520 bilhões" },
+  { code: "AE", country: "Emirados Árabes", flag: "🇦🇪", flagColor: "#15803d", capital: "Abu Dhabi", lat: 23.4241, lng: 53.8478, capitalLat: 24.4539, capitalLng: 54.3773, region: "Oriente Médio", population: "10M", bloc: "sul_global", alliance: "CCG / BRICS / OPEP", gdp: "US$ 500 bilhões" },
+  { code: "QA", country: "Catar", flag: "🇶🇦", flagColor: "#881337", capital: "Doha", lat: 25.3548, lng: 51.1839, capitalLat: 25.2854, capitalLng: 51.531, region: "Oriente Médio", population: "3M", bloc: "sul_global", alliance: "CCG / Maior Exportador GNL", gdp: "US$ 230 bilhões" },
+  { code: "EG", country: "Egito", flag: "🇪🇬", flagColor: "#dc2626", capital: "Cairo", lat: 26.8206, lng: 30.8025, capitalLat: 30.0444, capitalLng: 31.2357, region: "África / Oriente Médio", population: "110M", bloc: "sul_global", alliance: "Liga Árabe / BRICS (Canal Suez)", gdp: "US$ 390 bilhões" },
 
   // África & Oceania
-  { code: "ZA", country: "África do Sul", flag: "🇿🇦", capital: "Pretória", lat: -30.5595, lng: 22.9375, capitalLat: -25.7479, capitalLng: 28.2293, region: "África", population: "60M", bloc: "sul_global" },
-  { code: "NG", country: "Nigéria", flag: "🇳🇬", capital: "Abuja", lat: 9.082, lng: 8.6753, capitalLat: 9.0579, capitalLng: 7.4951, region: "África", population: "220M", bloc: "sul_global" },
-  { code: "SD", country: "Sudão", flag: "🇸🇩", capital: "Cartum", lat: 12.8628, lng: 30.2176, capitalLat: 15.5007, capitalLng: 32.5599, region: "África", population: "46M", bloc: "sul_global" },
-  { code: "AU", country: "Austrália", flag: "🇦🇺", capital: "Camberra", lat: -25.2744, lng: 133.7751, capitalLat: -35.2809, capitalLng: 149.13, region: "Oceania", population: "26M", bloc: "ocidente" },
+  { code: "ZA", country: "África do Sul", flag: "🇿🇦", flagColor: "#16a34a", capital: "Pretória", lat: -30.5595, lng: 22.9375, capitalLat: -25.7479, capitalLng: 28.2293, region: "África", population: "60M", bloc: "sul_global", alliance: "BRICS / União Africana / G20", gdp: "US$ 380 bilhões" },
+  { code: "NG", country: "Nigéria", flag: "🇳🇬", flagColor: "#16a34a", capital: "Abuja", lat: 9.082, lng: 8.6753, capitalLat: 9.0579, capitalLng: 7.4951, region: "África", population: "220M", bloc: "sul_global", alliance: "CEDEAO / União Africana / OPEP", gdp: "US$ 470 bilhões" },
+  { code: "SD", country: "Sudão", flag: "🇸🇩", flagColor: "#dc2626", capital: "Cartum", lat: 12.8628, lng: 30.2176, capitalLat: 15.5007, capitalLng: 32.5599, region: "África", population: "46M", bloc: "sul_global", alliance: "Liga Árabe / Crise Sahel", gdp: "US$ 25 bilhões" },
+  { code: "AU", country: "Austrália", flag: "🇦🇺", flagColor: "#3b82f6", capital: "Camberra", lat: -25.2744, lng: 133.7751, capitalLat: -35.2809, capitalLng: 149.13, region: "Oceania", population: "26M", bloc: "ocidente", alliance: "AUKUS / Quad / Five Eyes", gdp: "US$ 1.7 trilhão" },
 ];
+
+/**
+ * Mapeia propriedades de feições GeoJSON para dados enriquecidos de nações
+ */
+export function getCountryDetails(featureOrQuery: any): CountryCapital {
+  if (!featureOrQuery) {
+    return COUNTRIES_CAPITALS[0];
+  }
+
+  const props = featureOrQuery.properties || featureOrQuery;
+  const rawName = (props.name || props.admin || props.sovereignt || props.country || "").toString().trim().toLowerCase();
+  const code = (props.iso_a2 || props.code || props.postal || "").toString().trim().toUpperCase();
+  const code3 = (props.iso_a3 || props.sov_a3 || props.adm0_a3 || "").toString().trim().toUpperCase();
+
+  // 1. Busca exata por código ISO
+  const byCode = COUNTRIES_CAPITALS.find((c) => c.code === code);
+  if (byCode) return byCode;
+
+  // 2. Mapeamentos comuns em inglês / internacional para português
+  const aliases: Record<string, string> = {
+    "united states of america": "US",
+    "united states": "US",
+    "usa": "US",
+    "russia": "RU",
+    "russian federation": "RU",
+    "china": "CN",
+    "brazil": "BR",
+    "united kingdom": "GB",
+    "great britain": "GB",
+    "france": "FR",
+    "germany": "DE",
+    "japan": "JP",
+    "ukraine": "UA",
+    "india": "IN",
+    "iran": "IR",
+    "islamic republic of iran": "IR",
+    "israel": "IL",
+    "saudi arabia": "SA",
+    "south korea": "KR",
+    "republic of korea": "KR",
+    "north korea": "KP",
+    "dem. rep. korea": "KP",
+    "taiwan": "TW",
+    "argentina": "AR",
+    "egypt": "EG",
+    "thailand": "TH",
+    "indonesia": "ID",
+    "turkey": "TR",
+    "türkiye": "TR",
+    "australia": "AU",
+    "canada": "CA",
+    "mexico": "MX",
+    "south africa": "ZA",
+    "nigeria": "NG",
+    "sudan": "SD",
+    "colombia": "CO",
+    "chile": "CL",
+    "venezuela": "VE",
+    "guyana": "GY",
+    "united arab emirates": "AE",
+    "qatar": "QA",
+    "poland": "PL",
+    "italy": "IT",
+  };
+
+  const aliasCode = aliases[rawName];
+  if (aliasCode) {
+    const found = COUNTRIES_CAPITALS.find((c) => c.code === aliasCode);
+    if (found) return found;
+  }
+
+  // 3. Busca por substring no nome do país
+  const byName = COUNTRIES_CAPITALS.find(
+    (c) =>
+      c.country.toLowerCase() === rawName ||
+      rawName.includes(c.country.toLowerCase()) ||
+      c.country.toLowerCase().includes(rawName)
+  );
+  if (byName) return byName;
+
+  // 4. Mapeamento de cores primárias de bandeiras para nações globais
+  const ISO_FLAG_COLORS: Record<string, string> = {
+    // Américas
+    BR: "#22c55e", US: "#3b82f6", CA: "#ef4444", MX: "#16a34a", AR: "#38bdf8",
+    CL: "#ef4444", CO: "#eab308", PE: "#dc2626", VE: "#eab308", UY: "#38bdf8",
+    PY: "#dc2626", BO: "#16a34a", EC: "#eab308", CU: "#2563eb", GY: "#22c55e",
+    PA: "#2563eb", CR: "#2563eb",
+    // Europa
+    GB: "#dc2626", FR: "#2563eb", DE: "#eab308", IT: "#16a34a", ES: "#dc2626",
+    PT: "#16a34a", NL: "#f97316", BE: "#eab308", SE: "#0284c7", NO: "#dc2626",
+    FI: "#2563eb", DK: "#dc2626", PL: "#ef4444", UA: "#38bdf8", RU: "#dc2626",
+    CH: "#dc2626", AT: "#dc2626", GR: "#0284c7", TR: "#dc2626", IE: "#16a34a",
+    CZ: "#2563eb", HU: "#16a34a", RO: "#2563eb", BG: "#16a34a",
+    // Ásia / Oriente Médio
+    CN: "#ef4444", JP: "#ef4444", KR: "#3b82f6", KP: "#dc2626", IN: "#f97316",
+    PK: "#16a34a", ID: "#ef4444", TH: "#dc2626", VN: "#dc2626", PH: "#2563eb",
+    MY: "#eab308", SG: "#dc2626", TW: "#3b82f6", IR: "#16a34a", SA: "#15803d",
+    IL: "#3b82f6", AE: "#15803d", QA: "#881337", SY: "#16a34a", IQ: "#dc2626",
+    KZ: "#0284c7", UZ: "#0284c7", AF: "#16a34a", BD: "#16a34a",
+    // África & Oceania
+    EG: "#dc2626", ZA: "#16a34a", NG: "#16a34a", DZ: "#16a34a", MA: "#dc2626",
+    KE: "#dc2626", ET: "#16a34a", SD: "#dc2626", AU: "#3b82f6", NZ: "#2563eb",
+    AO: "#dc2626", MZ: "#16a34a", GH: "#eab308",
+  };
+
+  const cleanCode = (code.length === 2 && /^[A-Z]{2}$/.test(code)) ? code : (code3.slice(0, 2) || "INT");
+  const flagEmoji = (cleanCode.length === 2 && /^[A-Z]{2}$/.test(cleanCode))
+    ? String.fromCodePoint(127397 + cleanCode.charCodeAt(0), 127397 + cleanCode.charCodeAt(1))
+    : "🌐";
+
+  const displayName = props.name || props.admin || props.country || "Território Internacional";
+  const continent = props.continent || props.region_un || "Internacional";
+  const pop = props.pop_est ? `${Math.round(props.pop_est / 1000000)}M` : undefined;
+  const flagColor = ISO_FLAG_COLORS[cleanCode] || "#06b6d4";
+
+  // Identifica bloco geopolítico aproximado
+  let detectedBloc: "ocidente" | "eurasia" | "sul_global" = "sul_global";
+  const westernCodes = ["US", "CA", "GB", "FR", "DE", "IT", "ES", "NL", "BE", "SE", "NO", "FI", "DK", "PL", "AU", "NZ", "JP", "KR", "IL", "CH", "AT", "IE", "CZ", "PT", "GR"];
+  const eurasiaCodes = ["RU", "CN", "IR", "KP", "BY", "SY", "VE", "CU", "MM"];
+  if (westernCodes.includes(cleanCode)) {
+    detectedBloc = "ocidente";
+  } else if (eurasiaCodes.includes(cleanCode)) {
+    detectedBloc = "eurasia";
+  }
+
+  // Aliança aproximada
+  let detectedAlliance = "Nações Unidas (ONU)";
+  if (detectedBloc === "ocidente") {
+    detectedAlliance = continent.includes("Europe") ? "União Europeia / OTAN" : "Aliança Estratégica Ocidental / G7";
+  } else if (detectedBloc === "eurasia") {
+    detectedAlliance = "Eixo Eurasiático / OCS / OTSC";
+  } else if (continent.includes("South America") || continent.includes("Latin America")) {
+    detectedAlliance = "Mercosul / Celac / G77";
+  } else if (continent.includes("Africa")) {
+    detectedAlliance = "União Africana / Não-Alinhados";
+  } else if (continent.includes("Asia")) {
+    detectedAlliance = "Asean / Diálogo Regional";
+  }
+
+  return {
+    code: cleanCode,
+    country: displayName,
+    flag: flagEmoji,
+    flagColor: flagColor,
+    capital: props.capital || props.city || "Capital Regional",
+    lat: props.labelrank || 0,
+    lng: 0,
+    capitalLat: 0,
+    capitalLng: 0,
+    region: continent,
+    population: pop,
+    bloc: detectedBloc,
+    alliance: detectedAlliance,
+    gdp: props.gdp_md_est ? `US$ ${Math.round(props.gdp_md_est / 1000)}B` : undefined,
+  };
+}
 
 /* =====================================================================
  * 2. SEDES DAS RÁDIOS E EMISSORAS DE TV (PRISMA Live Stations)

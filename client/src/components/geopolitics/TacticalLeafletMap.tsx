@@ -10,6 +10,8 @@ import {
   SUBMARINE_CABLES,
   NUCLEAR_FACILITIES,
   EXTREME_WEATHER_ALERTS,
+  getCountryDetails,
+  type CountryCapital,
   type MediaLocation,
 } from "../../data/tacticalLayers";
 import { fetchUSGSEarthquakes, type EarthquakeEvent } from "../../utils/earthquakeService";
@@ -26,6 +28,8 @@ import {
   Wind,
   Anchor,
   Globe2,
+  Shield,
+  X,
 } from "lucide-react";
 
 interface TacticalLeafletMapProps {
@@ -44,8 +48,9 @@ export const TacticalLeafletMap: React.FC<TacticalLeafletMapProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
 
-  // Layer Groups
+  // Layer Groups (com boundaries na camada base de vetores)
   const layerGroupsRef = useRef<{
+    boundaries: L.LayerGroup;
     hotspots: L.LayerGroup;
     countries: L.LayerGroup;
     capitals: L.LayerGroup;
@@ -56,6 +61,7 @@ export const TacticalLeafletMap: React.FC<TacticalLeafletMapProps> = ({
     nuclear: L.LayerGroup;
     weather: L.LayerGroup;
   }>({
+    boundaries: L.layerGroup(),
     hotspots: L.layerGroup(),
     countries: L.layerGroup(),
     capitals: L.layerGroup(),
@@ -66,6 +72,11 @@ export const TacticalLeafletMap: React.FC<TacticalLeafletMapProps> = ({
     nuclear: L.layerGroup(),
     weather: L.layerGroup(),
   });
+
+  // Estado de país inspecionado no HUD superior esquerdo
+  const [hoveredCountry, setHoveredCountry] = useState<CountryCapital | null>(null);
+  const [isHoveringCountry, setIsHoveringCountry] = useState(false);
+  const geoJsonLayerRef = useRef<L.GeoJSON | null>(null);
 
   // Layer toggles
   const [activeLayers, setActiveLayers] = useState({
@@ -169,6 +180,102 @@ export const TacticalLeafletMap: React.FC<TacticalLeafletMapProps> = ({
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Carrega e inicializa polígonos de fronteiras GeoJSON (Iluminação dinâmica ao passar o mouse)
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadBoundaries() {
+      try {
+        const res = await fetch("./data/countries.geojson");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!mounted) return;
+
+        const group = layerGroupsRef.current.boundaries;
+        group.clearLayers();
+
+        const geojson = L.geoJSON(data, {
+          style: () => ({
+            stroke: true,
+            color: "#334155",
+            weight: 0.9,
+            opacity: 0.45,
+            fillColor: "#0f172a",
+            fillOpacity: 0.04,
+          }),
+          onEachFeature: (feature, layer) => {
+            const details = getCountryDetails(feature);
+
+            layer.on({
+              mouseover: (e) => {
+                const target = e.target;
+                target.setStyle({
+                  weight: 3,
+                  color: details.flagColor,
+                  opacity: 1,
+                  fillColor: details.flagColor,
+                  fillOpacity: 0.22,
+                });
+                if (target._path) {
+                  target._path.style.filter = `drop-shadow(0 0 7px ${details.flagColor})`;
+                  target._path.style.transition = "all 0.15s ease-out";
+                }
+                if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                  target.bringToFront();
+                }
+                setHoveredCountry(details);
+                setIsHoveringCountry(true);
+              },
+              mouseout: (e) => {
+                const target = e.target;
+                if (geoJsonLayerRef.current) {
+                  geoJsonLayerRef.current.resetStyle(target);
+                }
+                if (target._path) {
+                  target._path.style.filter = "none";
+                }
+                setIsHoveringCountry(false);
+              },
+              click: (e) => {
+                setHoveredCountry(details);
+                setIsHoveringCountry(true);
+                const map = mapInstanceRef.current;
+                if (map && e.target.getBounds) {
+                  map.fitBounds(e.target.getBounds(), { padding: [50, 50], maxZoom: 6 });
+                }
+              },
+            });
+          },
+        });
+
+        geoJsonLayerRef.current = geojson;
+        if (activeLayers.countries) {
+          group.addLayer(geojson);
+        }
+      } catch (err) {
+        console.warn("Aviso: Falha ao carregar boundaries GeoJSON", err);
+      }
+    }
+
+    loadBoundaries();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Sincroniza visibilidade da camada de boundaries com o toggle activeLayers.countries
+  useEffect(() => {
+    const group = layerGroupsRef.current.boundaries;
+    if (activeLayers.countries) {
+      if (geoJsonLayerRef.current && !group.hasLayer(geoJsonLayerRef.current)) {
+        group.addLayer(geoJsonLayerRef.current);
+      }
+    } else {
+      group.clearLayers();
+    }
+  }, [activeLayers.countries]);
 
   // Centraliza em hotspot selecionado se mudar externamente
   useEffect(() => {
@@ -401,6 +508,18 @@ export const TacticalLeafletMap: React.FC<TacticalLeafletMapProps> = ({
           iconAnchor: [30, 10],
         });
         const marker = L.marker([c.lat, c.lng], { icon });
+        marker.on("mouseover", () => {
+          setHoveredCountry(c);
+          setIsHoveringCountry(true);
+        });
+        marker.on("mouseout", () => {
+          setIsHoveringCountry(false);
+        });
+        marker.on("click", () => {
+          setHoveredCountry(c);
+          setIsHoveringCountry(true);
+        });
+
         marker.bindPopup(
           `
           <div class="p-1 font-sans text-slate-100 min-w-[180px]">
@@ -440,6 +559,18 @@ export const TacticalLeafletMap: React.FC<TacticalLeafletMapProps> = ({
           iconAnchor: [45, 10],
         });
         const marker = L.marker([c.capitalLat, c.capitalLng], { icon });
+        marker.on("mouseover", () => {
+          setHoveredCountry(c);
+          setIsHoveringCountry(true);
+        });
+        marker.on("mouseout", () => {
+          setIsHoveringCountry(false);
+        });
+        marker.on("click", () => {
+          setHoveredCountry(c);
+          setIsHoveringCountry(true);
+        });
+
         marker.bindPopup(
           `
           <div class="p-1 font-sans text-slate-100 min-w-[180px]">
@@ -606,6 +737,15 @@ export const TacticalLeafletMap: React.FC<TacticalLeafletMapProps> = ({
     });
   };
 
+  const handleCenterOnCountry = (c: CountryCapital) => {
+    if (!mapInstanceRef.current) return;
+    if (c.capitalLat && c.capitalLng) {
+      mapInstanceRef.current.flyTo([c.capitalLat, c.capitalLng], 5, { duration: 1.2 });
+    } else if (c.lat && c.lng) {
+      mapInstanceRef.current.flyTo([c.lat, c.lng], 4.5, { duration: 1.2 });
+    }
+  };
+
   const toggleLayer = (layerKey: keyof typeof activeLayers) => {
     setActiveLayers((prev) => ({ ...prev, [layerKey]: !prev[layerKey] }));
   };
@@ -667,6 +807,160 @@ export const TacticalLeafletMap: React.FC<TacticalLeafletMapProps> = ({
             <span>Camadas ({Object.values(activeLayers).filter(Boolean).length}/8)</span>
           </button>
         </div>
+      </div>
+
+      {/* HUD Widget Tático de Inspeção Territorial (Canto Superior Esquerdo) */}
+      <div className="absolute left-3 top-13 sm:top-14 z-20 max-w-[310px] sm:max-w-[360px] pointer-events-auto transition-all duration-300">
+        {hoveredCountry ? (
+          <div
+            className="rounded-2xl border bg-slate-950/95 backdrop-blur-md p-3 sm:p-3.5 shadow-2xl transition-all duration-200"
+            style={{
+              borderColor: `${hoveredCountry.flagColor}55`,
+              boxShadow: `0 8px 30px rgba(0,0,0,0.65), 0 0 16px ${hoveredCountry.flagColor}33`,
+            }}
+          >
+            {/* Barra de Status Tático Superior */}
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-2 mb-2.5">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="h-2 w-2 rounded-full inline-block animate-pulse"
+                  style={{
+                    backgroundColor: hoveredCountry.flagColor,
+                    boxShadow: `0 0 8px ${hoveredCountry.flagColor}`,
+                  }}
+                />
+                <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-slate-300">
+                  {isHoveringCountry ? "Monitoramento Ao Vivo" : "Território em Foco"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleCenterOnCountry(hoveredCountry)}
+                  className="text-cyan-400 hover:text-cyan-300 rounded p-1 text-[10px] font-mono font-bold flex items-center gap-1 hover:bg-slate-900 transition-colors"
+                  title="Aproximar país no mapa"
+                >
+                  <Crosshair className="h-3 w-3" />
+                  <span className="hidden sm:inline">Focar</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setHoveredCountry(null);
+                    setIsHoveringCountry(false);
+                  }}
+                  className="text-slate-400 hover:text-white transition-colors rounded p-1 leading-none"
+                  title="Fechar inspeção"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Cabeçalho da Nação: Bandeira, Nome e Badges */}
+            <div className="flex items-center gap-2.5 mb-2.5">
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl border"
+                style={{
+                  borderColor: `${hoveredCountry.flagColor}66`,
+                  backgroundColor: `${hoveredCountry.flagColor}18`,
+                  boxShadow: `0 0 12px ${hoveredCountry.flagColor}25`,
+                }}
+              >
+                {hoveredCountry.flag}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="font-display text-sm sm:text-base font-bold text-white truncate">
+                    {hoveredCountry.country}
+                  </h3>
+                  <span
+                    className="font-mono text-[9.5px] px-1.5 py-0.2 rounded font-black border"
+                    style={{
+                      color: hoveredCountry.flagColor,
+                      borderColor: `${hoveredCountry.flagColor}50`,
+                      backgroundColor: `${hoveredCountry.flagColor}15`,
+                    }}
+                  >
+                    {hoveredCountry.code}
+                  </span>
+                </div>
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  {hoveredCountry.bloc === "ocidente" && (
+                    <span className="rounded bg-blue-500/15 border border-blue-500/40 text-blue-300 text-[9.5px] font-mono font-bold px-1.5 py-0.2">
+                      Bloco Ocidental
+                    </span>
+                  )}
+                  {hoveredCountry.bloc === "eurasia" && (
+                    <span className="rounded bg-red-500/15 border border-red-500/40 text-red-300 text-[9.5px] font-mono font-bold px-1.5 py-0.2">
+                      Bloco Eurasiático
+                    </span>
+                  )}
+                  {hoveredCountry.bloc === "sul_global" && (
+                    <span className="rounded bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[9.5px] font-mono font-bold px-1.5 py-0.2">
+                      Sul Global & Neutros
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Grade de Parâmetros Geopolíticos Básicos */}
+            <div className="grid grid-cols-2 gap-1.5 text-[11px] mb-2">
+              <div className="rounded-lg bg-slate-900/80 border border-slate-800/80 p-1.5">
+                <div className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">Capital</div>
+                <div className="font-bold text-slate-100 truncate">{hoveredCountry.capital}</div>
+              </div>
+              <div className="rounded-lg bg-slate-900/80 border border-slate-800/80 p-1.5">
+                <div className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">Região</div>
+                <div className="font-bold text-slate-100 truncate">{hoveredCountry.region}</div>
+              </div>
+              <div className="rounded-lg bg-slate-900/80 border border-slate-800/80 p-1.5">
+                <div className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">População</div>
+                <div className="font-mono font-bold text-cyan-300">{hoveredCountry.population || "N/D"}</div>
+              </div>
+              <div className="rounded-lg bg-slate-900/80 border border-slate-800/80 p-1.5">
+                <div className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">PIB Estimado</div>
+                <div className="font-mono font-bold text-emerald-300">{hoveredCountry.gdp || "N/D"}</div>
+              </div>
+            </div>
+
+            {/* Aliança Estratégica */}
+            {hoveredCountry.alliance && (
+              <div className="rounded-lg bg-slate-900/90 border border-slate-800/90 px-2 py-1.5 mb-2">
+                <div className="flex items-center gap-1 text-[9px] font-mono text-slate-400 uppercase tracking-wider mb-0.5">
+                  <Shield className="h-3 w-3 text-cyan-400" /> Alianças / Tratados
+                </div>
+                <div className="text-[10.5px] font-semibold text-slate-200">
+                  {hoveredCountry.alliance}
+                </div>
+              </div>
+            )}
+
+            {/* Indicador de Fronteira Iluminada */}
+            <div className="flex items-center justify-between border-t border-slate-800/80 pt-1.5 text-[9.5px] font-mono">
+              <div className="flex items-center gap-1.5 text-slate-400">
+                <span
+                  className="h-2 w-2 rounded-full inline-block"
+                  style={{ backgroundColor: hoveredCountry.flagColor, boxShadow: `0 0 6px ${hoveredCountry.flagColor}` }}
+                />
+                <span>Fronteira Iluminada:</span>
+              </div>
+              <span className="font-bold text-slate-300 uppercase">{hoveredCountry.flagColor}</span>
+            </div>
+          </div>
+        ) : (
+          /* Standby Radar HUD */
+          <div className="flex items-center gap-2 rounded-xl border border-slate-800/90 bg-slate-950/85 backdrop-blur-md px-3 py-1.5 text-xs shadow-lg transition-all">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+            </span>
+            <div className="text-[10.5px] font-mono text-slate-300">
+              <strong className="text-cyan-400">Radar Geopolítico:</strong>{" "}
+              <span className="text-slate-400 hidden sm:inline">Passe o cursor sobre os países para iluminar fronteiras</span>
+              <span className="text-slate-400 sm:hidden">Toque em um país para inspecionar</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Popover / Menu Flutuante de Seleção de Camadas */}

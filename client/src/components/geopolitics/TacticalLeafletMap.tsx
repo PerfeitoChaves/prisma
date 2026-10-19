@@ -143,14 +143,16 @@ export const TacticalLeafletMap: React.FC<TacticalLeafletMapProps> = ({
       attributionControl: false,
     });
 
-    // CartoDB Dark Matter Basemap (tiles escuros, de alta performance e gratuitos)
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-      {
-        subdomains: "abcd",
-        maxZoom: 19,
-      }
-    ).addTo(map);
+    // CartoDB Dark Matter Basemap (100% gratuito e aberto sem chave; aceita VITE_CARTO_API_KEY se fornecida)
+    const cartoApiKey = ((import.meta as any).env?.VITE_CARTO_API_KEY || "").trim();
+    const tileUrl = cartoApiKey
+      ? `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${encodeURIComponent(cartoApiKey)}`
+      : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
+    L.tileLayer(tileUrl, {
+      subdomains: "abcd",
+      maxZoom: 19,
+    }).addTo(map);
 
     // Adiciona todos os grupos de camadas ao mapa
     Object.values(layerGroupsRef.current).forEach((group) => {

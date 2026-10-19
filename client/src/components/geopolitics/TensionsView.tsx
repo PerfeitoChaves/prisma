@@ -2,9 +2,11 @@ import React, { useState, useMemo } from "react";
 import type { Story } from "../../data/news";
 import { HOTSPOTS, getHotspot, normalizeHotspotId } from "../../data/geopolitics";
 import TacticalWorldMap from "./TacticalWorldMap";
+import TacticalLeafletMap from "./TacticalLeafletMap";
 import HotspotsFeed from "./HotspotsFeed";
 import HotspotIntelligencePanel from "./HotspotIntelligencePanel";
 import NarrativeMatrix from "./NarrativeMatrix";
+import type { LiveMediaItem } from "../../data/media";
 import {
   Globe,
   LayoutGrid,
@@ -14,6 +16,7 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  MapPin,
 } from "lucide-react";
 
 interface TensionsViewProps {
@@ -22,6 +25,7 @@ interface TensionsViewProps {
   onSelectHotspot: (id: string) => void;
   onCompare: (storyId?: string, outlet?: string) => void;
   onRead: (storyId: string) => void;
+  onSelectMedia?: (media: LiveMediaItem) => void;
   className?: string;
 }
 
@@ -31,10 +35,11 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
   onSelectHotspot,
   onCompare,
   onRead,
+  onSelectMedia,
   className = "",
 }) => {
-  // Mobile / Desktop View Mode: 'mapa' vs 'feed'
-  const [viewMode, setViewMode] = useState<"mapa" | "feed">("mapa");
+  // Mobile / Desktop View Mode: 'mapa' (Leaflet) vs 'svg' (SVG esquemático) vs 'feed' (Cards)
+  const [viewMode, setViewMode] = useState<"mapa" | "svg" | "feed">("mapa");
 
   // Expandable Narrative Matrix toggle
   const [matrixExpanded, setMatrixExpanded] = useState<boolean>(true);
@@ -142,7 +147,7 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
       </section>
 
       {/* Main View Mode Switcher (Segmented Button for Mobile & Desktop) */}
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex rounded-xl border border-slate-800 bg-slate-950/80 p-1 font-mono text-xs shadow-inner">
           <button
             onClick={() => setViewMode("mapa")}
@@ -153,6 +158,18 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
             }`}
           >
             <Globe className="h-3.5 w-3.5" />
+            <span>Mapa Tático (Leaflet)</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode("svg")}
+            className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 font-bold transition-all ${
+              viewMode === "svg"
+                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                : "text-slate-400 hover:text-slate-200 border border-transparent"
+            }`}
+          >
+            <MapPin className="h-3.5 w-3.5" />
             <span>Mapa Vetorial SVG</span>
           </button>
 
@@ -178,8 +195,26 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
         </div>
       </div>
 
-      {/* Conditional View: Mapa vs Feed */}
+      {/* Conditional View: Mapa Leaflet vs SVG vs Feed */}
       {viewMode === "mapa" ? (
+        <div className="flex flex-col gap-6">
+          {/* Tactical Leaflet Map with CartoDB Dark Matter tiles, scroll-zoom, drag, media pins, quakes, chokepoints */}
+          <TacticalLeafletMap
+            hotspots={HOTSPOTS}
+            selectedHotspotId={activeHotspotId}
+            onSelectHotspot={onSelectHotspot}
+            onSelectMedia={onSelectMedia}
+          />
+
+          {/* Hotspot Intelligence Dossier */}
+          <HotspotIntelligencePanel
+            hotspot={activeHotspot}
+            allStories={stories}
+            onCompare={onCompare}
+            onRead={onRead}
+          />
+        </div>
+      ) : viewMode === "svg" ? (
         <div className="flex flex-col gap-6">
           {/* Tactical SVG Map */}
           <TacticalWorldMap

@@ -249,10 +249,10 @@ async function runTestSuite() {
     const title = await session.eval("document.querySelector('h1')?.innerText");
     assert.strictEqual(title, "Mapa de Tensões Globais & Focos de Crise");
 
-    const svgFound = await session.eval(`
-      !!document.querySelector('svg[viewBox="0 0 1000 500"]')
+    const mapFound = await session.eval(`
+      !!document.querySelector('.leaflet-container') || !!document.querySelector('svg[viewBox="0 0 1000 500"]')
     `);
-    assert.ok(svgFound, "Tactical SVG World Map canvas must be present in DOM");
+    assert.ok(mapFound, "Tactical Map canvas (Leaflet or SVG) must be present in DOM");
   })();
 
   await recordTest("View 4 (Radar X): Mounts Real-Time Trends Panel via TopBar Click", async () => {
@@ -296,7 +296,7 @@ async function runTestSuite() {
   // ---------------------------------------------------------------------------
   console.log("\n--- SUITE 2: TACTICAL WORLD MAP 8 HOTSPOTS & RADAR SWEEP ---");
 
-  // Return to Tensões
+  // Return to Tensões & select SVG mode for SVG-specific assertions
   await session.eval(`
     (() => {
       const btns = Array.from(document.querySelectorAll('header nav button'));
@@ -304,7 +304,14 @@ async function runTestSuite() {
       if (tBtn) tBtn.click();
     })()
   `);
-  await session.wait(600);
+  await session.wait(500);
+  await session.eval(`
+    (() => {
+      const svgBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Mapa Vetorial SVG'));
+      if (svgBtn) svgBtn.click();
+    })()
+  `);
+  await session.wait(500);
 
   await recordTest("TacticalWorldMap: Exactly 8 Hotspots Rendered with Interactive Role='button'", async () => {
     const labels = await session.eval(`
@@ -624,8 +631,10 @@ async function runTestSuite() {
     await session.navigate(`http://127.0.0.1:${PORT}/index.html#tensoes?hotspot=unknown_xyz_9999`);
     await session.wait(600);
 
-    const svgExists = await session.eval("!!document.querySelector('svg[viewBox=\"0 0 1000 500\"]')");
-    assert.ok(svgExists, "App should fallback gracefully and display Tactical SVG map");
+    const mapExists = await session.eval(`
+      !!document.querySelector('.leaflet-container') || !!document.querySelector('svg[viewBox="0 0 1000 500"]')
+    `);
+    assert.ok(mapExists, "App should fallback gracefully and display Tactical map");
   })();
 
   await recordTest("Adversarial: Malformed Comparator Hash (#comparador?storyId=null) Degrades Safely", async () => {
@@ -652,8 +661,10 @@ async function runTestSuite() {
       await session.wait(120);
     }
 
-    const svgAlive = await session.eval("!!document.querySelector('svg[viewBox=\"0 0 1000 500\"]')");
-    assert.ok(svgAlive, "Tactical SVG Map must survive rapid sequential hotspot changes");
+    const mapAlive = await session.eval(`
+      !!document.querySelector('.leaflet-container') || !!document.querySelector('svg[viewBox="0 0 1000 500"]')
+    `);
+    assert.ok(mapAlive, "Tactical Map must survive rapid sequential hotspot changes");
   })();
 
   // ---------------------------------------------------------------------------

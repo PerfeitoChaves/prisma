@@ -375,6 +375,7 @@ export default function App() {
             }}
             onCompare={openComparador}
             onRead={setReaderId}
+            onSelectMedia={handleSelectChannel}
           />
         ) : view === "radar" ? (
           <RadarView

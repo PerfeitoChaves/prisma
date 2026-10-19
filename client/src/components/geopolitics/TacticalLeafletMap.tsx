@@ -143,11 +143,9 @@ export const TacticalLeafletMap: React.FC<TacticalLeafletMapProps> = ({
       attributionControl: false,
     });
 
-    // CartoDB Dark Matter Basemap (100% gratuito e aberto sem chave; aceita VITE_CARTO_API_KEY se fornecida)
-    const cartoApiKey = ((import.meta as any).env?.VITE_CARTO_API_KEY || "").trim();
-    const tileUrl = cartoApiKey
-      ? `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${encodeURIComponent(cartoApiKey)}`
-      : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+    // CARTO Basemaps Key oficial (remove a marca d'água 'API KEY REQUIRED')
+    const cartoKey = ((import.meta as any).env?.VITE_CARTO_API_KEY || "cb1_4oep_1_6476c53772ced180ddb8926a").trim();
+    const tileUrl = `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoKey)}`;
 
     L.tileLayer(tileUrl, {
       subdomains: "abcd",

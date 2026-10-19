@@ -186,75 +186,95 @@ export const TacticalLeafletMap: React.FC<TacticalLeafletMapProps> = ({
     let mounted = true;
 
     async function loadBoundaries() {
+      // Lista de caminhos candidatos para garantir resolução 100% à prova de 404 em qualquer rota
+      const candidateUrls: string[] = [];
       try {
-        const res = await fetch("./data/countries.geojson");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (!mounted) return;
-
-        const group = layerGroupsRef.current.boundaries;
-        group.clearLayers();
-
-        const geojson = L.geoJSON(data, {
-          style: () => ({
-            stroke: true,
-            color: "#334155",
-            weight: 0.9,
-            opacity: 0.45,
-            fillColor: "#0f172a",
-            fillOpacity: 0.04,
-          }),
-          onEachFeature: (feature, layer) => {
-            const details = getCountryDetails(feature);
-
-            layer.on({
-              mouseover: (e) => {
-                const target = e.target;
-                target.setStyle({
-                  weight: 3,
-                  color: details.flagColor,
-                  opacity: 1,
-                  fillColor: details.flagColor,
-                  fillOpacity: 0.22,
-                });
-                if (target._path) {
-                  target._path.style.filter = `drop-shadow(0 0 7px ${details.flagColor})`;
-                  target._path.style.transition = "all 0.15s ease-out";
-                }
-                if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-                  target.bringToFront();
-                }
-                setHoveredCountry(details);
-                setIsHoveringCountry(true);
-              },
-              mouseout: (e) => {
-                const target = e.target;
-                if (geoJsonLayerRef.current) {
-                  geoJsonLayerRef.current.resetStyle(target);
-                }
-                if (target._path) {
-                  target._path.style.filter = "none";
-                }
-                setIsHoveringCountry(false);
-              },
-              click: (e) => {
-                setHoveredCountry(details);
-                setIsHoveringCountry(true);
-                const map = mapInstanceRef.current;
-                if (map && e.target.getBounds) {
-                  map.fitBounds(e.target.getBounds(), { padding: [50, 50], maxZoom: 6 });
-                }
-              },
-            });
-          },
-        });
-
-        geoJsonLayerRef.current = geojson;
-        if (activeLayers.countries) {
-          group.addLayer(geojson);
+        const loc = window.location;
+        const segments = loc.pathname.split("/").filter(Boolean);
+        if (segments.length > 0) {
+          candidateUrls.push(`${loc.origin}/${segments[0]}/data/countries.geojson`);
         }
-      } catch (err) {
-        console.warn("Aviso: Falha ao carregar boundaries GeoJSON", err);
+        candidateUrls.push(`${loc.origin}/data/countries.geojson`);
+      } catch {}
+      candidateUrls.push("./data/countries.geojson");
+      candidateUrls.push("data/countries.geojson");
+      candidateUrls.push("/prisma/data/countries.geojson");
+      candidateUrls.push("/data/countries.geojson");
+
+      let data: any = null;
+      for (const url of Array.from(new Set(candidateUrls))) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            data = await res.json();
+            break;
+          }
+        } catch {
+          // tenta próximo candidato
+        }
+      }
+
+      if (!data || !mounted) return;
+
+      const group = layerGroupsRef.current.boundaries;
+      group.clearLayers();
+
+      const geojson = L.geoJSON(data, {
+        style: () => ({
+          stroke: true,
+          color: "#475569",
+          weight: 1.2,
+          opacity: 0.65,
+          fillColor: "#1e293b",
+          fillOpacity: 0.18,
+        }),
+        onEachFeature: (feature, layer) => {
+          const details = getCountryDetails(feature);
+
+          const applyHover = (target: any) => {
+            target.setStyle({
+              weight: 3.5,
+              color: details.flagColor,
+              opacity: 1,
+              fillColor: details.flagColor,
+              fillOpacity: 0.35,
+            });
+            if (target._path) {
+              target._path.style.filter = `drop-shadow(0 0 10px ${details.flagColor})`;
+              target._path.style.transition = "all 0.12s ease-out";
+            }
+            setHoveredCountry(details);
+            setIsHoveringCountry(true);
+          };
+
+          const removeHover = (target: any) => {
+            if (geoJsonLayerRef.current) {
+              geoJsonLayerRef.current.resetStyle(target);
+            }
+            if (target._path) {
+              target._path.style.filter = "none";
+            }
+            setIsHoveringCountry(false);
+          };
+
+          layer.on({
+            mouseover: (e) => applyHover(e.target),
+            mousemove: (e) => applyHover(e.target),
+            mouseout: (e) => removeHover(e.target),
+            click: (e) => {
+              applyHover(e.target);
+              const map = mapInstanceRef.current;
+              if (map && e.target.getBounds) {
+                map.fitBounds(e.target.getBounds(), { padding: [50, 50], maxZoom: 6 });
+              }
+            },
+          });
+        },
+      });
+
+      geoJsonLayerRef.current = geojson;
+      if (activeLayers.countries) {
+        group.addLayer(geojson);
       }
     }
 
@@ -809,313 +829,315 @@ export const TacticalLeafletMap: React.FC<TacticalLeafletMapProps> = ({
         </div>
       </div>
 
-      {/* HUD Widget Tático de Inspeção Territorial (Canto Superior Esquerdo) */}
-      <div className="absolute left-3 top-13 sm:top-14 z-20 max-w-[310px] sm:max-w-[360px] pointer-events-auto transition-all duration-300">
-        {hoveredCountry ? (
-          <div
-            className="rounded-2xl border bg-slate-950/95 backdrop-blur-md p-3 sm:p-3.5 shadow-2xl transition-all duration-200"
-            style={{
-              borderColor: `${hoveredCountry.flagColor}55`,
-              boxShadow: `0 8px 30px rgba(0,0,0,0.65), 0 0 16px ${hoveredCountry.flagColor}33`,
-            }}
-          >
-            {/* Barra de Status Tático Superior */}
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-2 mb-2.5">
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="h-2 w-2 rounded-full inline-block animate-pulse"
-                  style={{
-                    backgroundColor: hoveredCountry.flagColor,
-                    boxShadow: `0 0 8px ${hoveredCountry.flagColor}`,
-                  }}
-                />
-                <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-slate-300">
-                  {isHoveringCountry ? "Monitoramento Ao Vivo" : "Território em Foco"}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => handleCenterOnCountry(hoveredCountry)}
-                  className="text-cyan-400 hover:text-cyan-300 rounded p-1 text-[10px] font-mono font-bold flex items-center gap-1 hover:bg-slate-900 transition-colors"
-                  title="Aproximar país no mapa"
-                >
-                  <Crosshair className="h-3 w-3" />
-                  <span className="hidden sm:inline">Focar</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setHoveredCountry(null);
-                    setIsHoveringCountry(false);
-                  }}
-                  className="text-slate-400 hover:text-white transition-colors rounded p-1 leading-none"
-                  title="Fechar inspeção"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
+      {/* Área do Mapa Interativo com Controles & HUD Flutuantes */}
+      <div className="relative w-full overflow-hidden">
+        {/* Container do Mapa Leaflet com altura ajustada */}
+        <div
+          ref={mapContainerRef}
+          className="w-full h-[520px] sm:h-[620px] lg:h-[680px] bg-[#090d16] outline-none"
+        />
 
-            {/* Cabeçalho da Nação: Bandeira, Nome e Badges */}
-            <div className="flex items-center gap-2.5 mb-2.5">
-              <div
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl border"
-                style={{
-                  borderColor: `${hoveredCountry.flagColor}66`,
-                  backgroundColor: `${hoveredCountry.flagColor}18`,
-                  boxShadow: `0 0 12px ${hoveredCountry.flagColor}25`,
-                }}
-              >
-                {hoveredCountry.flag}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <h3 className="font-display text-sm sm:text-base font-bold text-white truncate">
-                    {hoveredCountry.country}
-                  </h3>
+        {/* HUD Widget Tático de Inspeção Territorial (Canto Superior Esquerdo do Mapa) */}
+        <div className="absolute left-3 top-3 z-[1000] max-w-[310px] sm:max-w-[360px] pointer-events-auto transition-all duration-300">
+          {hoveredCountry ? (
+            <div
+              className="rounded-2xl border bg-slate-950/95 backdrop-blur-md p-3 sm:p-3.5 shadow-2xl transition-all duration-200"
+              style={{
+                borderColor: `${hoveredCountry.flagColor}55`,
+                boxShadow: `0 8px 30px rgba(0,0,0,0.65), 0 0 16px ${hoveredCountry.flagColor}33`,
+              }}
+            >
+              {/* Barra de Status Tático Superior */}
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2 mb-2.5">
+                <div className="flex items-center gap-1.5">
                   <span
-                    className="font-mono text-[9.5px] px-1.5 py-0.2 rounded font-black border"
+                    className="h-2 w-2 rounded-full inline-block animate-pulse"
                     style={{
-                      color: hoveredCountry.flagColor,
-                      borderColor: `${hoveredCountry.flagColor}50`,
-                      backgroundColor: `${hoveredCountry.flagColor}15`,
+                      backgroundColor: hoveredCountry.flagColor,
+                      boxShadow: `0 0 8px ${hoveredCountry.flagColor}`,
                     }}
-                  >
-                    {hoveredCountry.code}
+                  />
+                  <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-slate-300">
+                    {isHoveringCountry ? "Monitoramento Ao Vivo" : "Território em Foco"}
                   </span>
                 </div>
-                <div className="mt-0.5 flex items-center gap-1.5">
-                  {hoveredCountry.bloc === "ocidente" && (
-                    <span className="rounded bg-blue-500/15 border border-blue-500/40 text-blue-300 text-[9.5px] font-mono font-bold px-1.5 py-0.2">
-                      Bloco Ocidental
-                    </span>
-                  )}
-                  {hoveredCountry.bloc === "eurasia" && (
-                    <span className="rounded bg-red-500/15 border border-red-500/40 text-red-300 text-[9.5px] font-mono font-bold px-1.5 py-0.2">
-                      Bloco Eurasiático
-                    </span>
-                  )}
-                  {hoveredCountry.bloc === "sul_global" && (
-                    <span className="rounded bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[9.5px] font-mono font-bold px-1.5 py-0.2">
-                      Sul Global & Neutros
-                    </span>
-                  )}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleCenterOnCountry(hoveredCountry)}
+                    className="text-cyan-400 hover:text-cyan-300 rounded p-1 text-[10px] font-mono font-bold flex items-center gap-1 hover:bg-slate-900 transition-colors"
+                    title="Aproximar país no mapa"
+                  >
+                    <Crosshair className="h-3 w-3" />
+                    <span className="hidden sm:inline">Focar</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setHoveredCountry(null);
+                      setIsHoveringCountry(false);
+                    }}
+                    className="text-slate-400 hover:text-white transition-colors rounded p-1 leading-none"
+                    title="Fechar inspeção"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
+              </div>
+
+              {/* Cabeçalho da Nação: Bandeira, Nome e Badges */}
+              <div className="flex items-center gap-2.5 mb-2.5">
+                <div
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl border"
+                  style={{
+                    borderColor: `${hoveredCountry.flagColor}66`,
+                    backgroundColor: `${hoveredCountry.flagColor}18`,
+                    boxShadow: `0 0 12px ${hoveredCountry.flagColor}25`,
+                  }}
+                >
+                  {hoveredCountry.flag}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="font-display text-sm sm:text-base font-bold text-white truncate">
+                      {hoveredCountry.country}
+                    </h3>
+                    <span
+                      className="font-mono text-[9.5px] px-1.5 py-0.2 rounded font-black border"
+                      style={{
+                        color: hoveredCountry.flagColor,
+                        borderColor: `${hoveredCountry.flagColor}50`,
+                        backgroundColor: `${hoveredCountry.flagColor}15`,
+                      }}
+                    >
+                      {hoveredCountry.code}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    {hoveredCountry.bloc === "ocidente" && (
+                      <span className="rounded bg-blue-500/15 border border-blue-500/40 text-blue-300 text-[9.5px] font-mono font-bold px-1.5 py-0.2">
+                        Bloco Ocidental
+                      </span>
+                    )}
+                    {hoveredCountry.bloc === "eurasia" && (
+                      <span className="rounded bg-red-500/15 border border-red-500/40 text-red-300 text-[9.5px] font-mono font-bold px-1.5 py-0.2">
+                        Bloco Eurasiático
+                      </span>
+                    )}
+                    {hoveredCountry.bloc === "sul_global" && (
+                      <span className="rounded bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[9.5px] font-mono font-bold px-1.5 py-0.2">
+                        Sul Global & Neutros
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Grade de Parâmetros Geopolíticos Básicos */}
+              <div className="grid grid-cols-2 gap-1.5 text-[11px] mb-2">
+                <div className="rounded-lg bg-slate-900/80 border border-slate-800/80 p-1.5">
+                  <div className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">Capital</div>
+                  <div className="font-bold text-slate-100 truncate">{hoveredCountry.capital}</div>
+                </div>
+                <div className="rounded-lg bg-slate-900/80 border border-slate-800/80 p-1.5">
+                  <div className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">Região</div>
+                  <div className="font-bold text-slate-100 truncate">{hoveredCountry.region}</div>
+                </div>
+                <div className="rounded-lg bg-slate-900/80 border border-slate-800/80 p-1.5">
+                  <div className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">População</div>
+                  <div className="font-mono font-bold text-cyan-300">{hoveredCountry.population || "N/D"}</div>
+                </div>
+                <div className="rounded-lg bg-slate-900/80 border border-slate-800/80 p-1.5">
+                  <div className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">PIB Estimado</div>
+                  <div className="font-mono font-bold text-emerald-300">{hoveredCountry.gdp || "N/D"}</div>
+                </div>
+              </div>
+
+              {/* Aliança Estratégica */}
+              {hoveredCountry.alliance && (
+                <div className="rounded-lg bg-slate-900/90 border border-slate-800/90 px-2 py-1.5 mb-2">
+                  <div className="flex items-center gap-1 text-[9px] font-mono text-slate-400 uppercase tracking-wider mb-0.5">
+                    <Shield className="h-3 w-3 text-cyan-400" /> Alianças / Tratados
+                  </div>
+                  <div className="text-[10.5px] font-semibold text-slate-200">
+                    {hoveredCountry.alliance}
+                  </div>
+                </div>
+              )}
+
+              {/* Indicador de Fronteira Iluminada */}
+              <div className="flex items-center justify-between border-t border-slate-800/80 pt-1.5 text-[9.5px] font-mono">
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <span
+                    className="h-2 w-2 rounded-full inline-block"
+                    style={{ backgroundColor: hoveredCountry.flagColor, boxShadow: `0 0 6px ${hoveredCountry.flagColor}` }}
+                  />
+                  <span>Fronteira Iluminada:</span>
+                </div>
+                <span className="font-bold text-slate-300 uppercase">{hoveredCountry.flagColor}</span>
               </div>
             </div>
-
-            {/* Grade de Parâmetros Geopolíticos Básicos */}
-            <div className="grid grid-cols-2 gap-1.5 text-[11px] mb-2">
-              <div className="rounded-lg bg-slate-900/80 border border-slate-800/80 p-1.5">
-                <div className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">Capital</div>
-                <div className="font-bold text-slate-100 truncate">{hoveredCountry.capital}</div>
-              </div>
-              <div className="rounded-lg bg-slate-900/80 border border-slate-800/80 p-1.5">
-                <div className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">Região</div>
-                <div className="font-bold text-slate-100 truncate">{hoveredCountry.region}</div>
-              </div>
-              <div className="rounded-lg bg-slate-900/80 border border-slate-800/80 p-1.5">
-                <div className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">População</div>
-                <div className="font-mono font-bold text-cyan-300">{hoveredCountry.population || "N/D"}</div>
-              </div>
-              <div className="rounded-lg bg-slate-900/80 border border-slate-800/80 p-1.5">
-                <div className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">PIB Estimado</div>
-                <div className="font-mono font-bold text-emerald-300">{hoveredCountry.gdp || "N/D"}</div>
+          ) : (
+            /* Standby Radar HUD */
+            <div className="flex items-center gap-2 rounded-xl border border-slate-800/90 bg-slate-950/85 backdrop-blur-md px-3 py-1.5 text-xs shadow-lg transition-all">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+              </span>
+              <div className="text-[10.5px] font-mono text-slate-300">
+                <strong className="text-cyan-400">Radar Geopolítico:</strong>{" "}
+                <span className="text-slate-400 hidden sm:inline">Passe o cursor sobre os países para iluminar fronteiras</span>
+                <span className="text-slate-400 sm:hidden">Toque em um país para inspecionar</span>
               </div>
             </div>
+          )}
+        </div>
 
-            {/* Aliança Estratégica */}
-            {hoveredCountry.alliance && (
-              <div className="rounded-lg bg-slate-900/90 border border-slate-800/90 px-2 py-1.5 mb-2">
-                <div className="flex items-center gap-1 text-[9px] font-mono text-slate-400 uppercase tracking-wider mb-0.5">
-                  <Shield className="h-3 w-3 text-cyan-400" /> Alianças / Tratados
-                </div>
-                <div className="text-[10.5px] font-semibold text-slate-200">
-                  {hoveredCountry.alliance}
-                </div>
-              </div>
-            )}
+        {/* Popover / Menu Flutuante de Seleção de Camadas (Canto Superior Direito do Mapa) */}
+        {layersMenuOpen && (
+          <div className="absolute right-3 top-3 z-[1000] w-72 rounded-xl border border-slate-700 bg-slate-900/95 p-3 text-xs shadow-2xl backdrop-blur-md">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2 font-mono text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+              <span>Camadas & Filtros Táticos</span>
+              <button
+                onClick={() => setLayersMenuOpen(false)}
+                className="hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
 
-            {/* Indicador de Fronteira Iluminada */}
-            <div className="flex items-center justify-between border-t border-slate-800/80 pt-1.5 text-[9.5px] font-mono">
-              <div className="flex items-center gap-1.5 text-slate-400">
-                <span
-                  className="h-2 w-2 rounded-full inline-block"
-                  style={{ backgroundColor: hoveredCountry.flagColor, boxShadow: `0 0 6px ${hoveredCountry.flagColor}` }}
+            <div className="space-y-1.5 font-sans">
+              <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
+                <span className="flex items-center gap-2 text-slate-200">
+                  <Flame className="h-4 w-4 text-red-400" /> Focos de Conflito (Hotspots)
+                </span>
+                <input
+                  type="checkbox"
+                  checked={activeLayers.hotspots}
+                  onChange={() => toggleLayer("hotspots")}
+                  className="rounded accent-cyan-500"
                 />
-                <span>Fronteira Iluminada:</span>
-              </div>
-              <span className="font-bold text-slate-300 uppercase">{hoveredCountry.flagColor}</span>
-            </div>
-          </div>
-        ) : (
-          /* Standby Radar HUD */
-          <div className="flex items-center gap-2 rounded-xl border border-slate-800/90 bg-slate-950/85 backdrop-blur-md px-3 py-1.5 text-xs shadow-lg transition-all">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-            </span>
-            <div className="text-[10.5px] font-mono text-slate-300">
-              <strong className="text-cyan-400">Radar Geopolítico:</strong>{" "}
-              <span className="text-slate-400 hidden sm:inline">Passe o cursor sobre os países para iluminar fronteiras</span>
-              <span className="text-slate-400 sm:hidden">Toque em um país para inspecionar</span>
+              </label>
+
+              <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
+                <span className="flex items-center gap-2 text-slate-200">
+                  <Tv className="h-4 w-4 text-cyan-400" /> Sedes de TV & Rádio (PRISMA)
+                </span>
+                <input
+                  type="checkbox"
+                  checked={activeLayers.media}
+                  onChange={() => toggleLayer("media")}
+                  className="rounded accent-cyan-500"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
+                <span className="flex items-center gap-2 text-slate-200">
+                  <AlertTriangle className="h-4 w-4 text-amber-400" /> Terremotos USGS (≥6.0 e Recentes)
+                </span>
+                <input
+                  type="checkbox"
+                  checked={activeLayers.earthquakes}
+                  onChange={() => toggleLayer("earthquakes")}
+                  className="rounded accent-cyan-500"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
+                <span className="flex items-center gap-2 text-slate-200">
+                  <Anchor className="h-4 w-4 text-emerald-400" /> Chokepoints e Rotas Marítimas
+                </span>
+                <input
+                  type="checkbox"
+                  checked={activeLayers.chokepoints}
+                  onChange={() => toggleLayer("chokepoints")}
+                  className="rounded accent-cyan-500"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
+                <span className="flex items-center gap-2 text-slate-200">
+                  <Globe2 className="h-4 w-4 text-sky-400" /> Cabos Submarinos de Internet
+                </span>
+                <input
+                  type="checkbox"
+                  checked={activeLayers.cables}
+                  onChange={() => toggleLayer("cables")}
+                  className="rounded accent-cyan-500"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
+                <span className="flex items-center gap-2 text-slate-200">
+                  ☢️ Centrais Nucleares Estratégicas
+                </span>
+                <input
+                  type="checkbox"
+                  checked={activeLayers.nuclear}
+                  onChange={() => toggleLayer("nuclear")}
+                  className="rounded accent-cyan-500"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
+                <span className="flex items-center gap-2 text-slate-200">
+                  <Wind className="h-4 w-4 text-blue-400" /> Alertas de Tempestades / Ciclones
+                </span>
+                <input
+                  type="checkbox"
+                  checked={activeLayers.weather}
+                  onChange={() => toggleLayer("weather")}
+                  className="rounded accent-cyan-500"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
+                <span className="flex items-center gap-2 text-slate-200">
+                  🇧🇷 Bandeiras, Países & Capitais
+                </span>
+                <input
+                  type="checkbox"
+                  checked={activeLayers.countries}
+                  onChange={() => toggleLayer("countries")}
+                  className="rounded accent-cyan-500"
+                />
+              </label>
             </div>
           </div>
         )}
-      </div>
 
-      {/* Popover / Menu Flutuante de Seleção de Camadas */}
-      {layersMenuOpen && (
-        <div className="absolute right-3 top-14 z-30 w-72 rounded-xl border border-slate-700 bg-slate-900/95 p-3 text-xs shadow-2xl backdrop-blur-md">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2 font-mono text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-            <span>Camadas & Filtros Táticos</span>
-            <button
-              onClick={() => setLayersMenuOpen(false)}
-              className="hover:text-white"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="space-y-1.5 font-sans">
-            <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
-              <span className="flex items-center gap-2 text-slate-200">
-                <Flame className="h-4 w-4 text-red-400" /> Focos de Conflito (Hotspots)
-              </span>
-              <input
-                type="checkbox"
-                checked={activeLayers.hotspots}
-                onChange={() => toggleLayer("hotspots")}
-                className="rounded accent-cyan-500"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
-              <span className="flex items-center gap-2 text-slate-200">
-                <Tv className="h-4 w-4 text-cyan-400" /> Sedes de TV & Rádio (PRISMA)
-              </span>
-              <input
-                type="checkbox"
-                checked={activeLayers.media}
-                onChange={() => toggleLayer("media")}
-                className="rounded accent-cyan-500"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
-              <span className="flex items-center gap-2 text-slate-200">
-                <AlertTriangle className="h-4 w-4 text-amber-400" /> Terremotos USGS (≥6.0 e Recentes)
-              </span>
-              <input
-                type="checkbox"
-                checked={activeLayers.earthquakes}
-                onChange={() => toggleLayer("earthquakes")}
-                className="rounded accent-cyan-500"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
-              <span className="flex items-center gap-2 text-slate-200">
-                <Anchor className="h-4 w-4 text-emerald-400" /> Chokepoints e Rotas Marítimas
-              </span>
-              <input
-                type="checkbox"
-                checked={activeLayers.chokepoints}
-                onChange={() => toggleLayer("chokepoints")}
-                className="rounded accent-cyan-500"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
-              <span className="flex items-center gap-2 text-slate-200">
-                <Globe2 className="h-4 w-4 text-sky-400" /> Cabos Submarinos de Internet
-              </span>
-              <input
-                type="checkbox"
-                checked={activeLayers.cables}
-                onChange={() => toggleLayer("cables")}
-                className="rounded accent-cyan-500"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
-              <span className="flex items-center gap-2 text-slate-200">
-                ☢️ Centrais Nucleares Estratégicas
-              </span>
-              <input
-                type="checkbox"
-                checked={activeLayers.nuclear}
-                onChange={() => toggleLayer("nuclear")}
-                className="rounded accent-cyan-500"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
-              <span className="flex items-center gap-2 text-slate-200">
-                <Wind className="h-4 w-4 text-blue-400" /> Alertas de Tempestades / Ciclones
-              </span>
-              <input
-                type="checkbox"
-                checked={activeLayers.weather}
-                onChange={() => toggleLayer("weather")}
-                className="rounded accent-cyan-500"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800/80 cursor-pointer">
-              <span className="flex items-center gap-2 text-slate-200">
-                🇧🇷 Bandeiras, Países & Capitais
-              </span>
-              <input
-                type="checkbox"
-                checked={activeLayers.countries}
-                onChange={() => toggleLayer("countries")}
-                className="rounded accent-cyan-500"
-              />
-            </label>
-          </div>
+        {/* Controles Flutuantes Táteis de Zoom e Reset (Canto Inferior Esquerdo do Mapa) */}
+        <div className="absolute left-3 bottom-3 z-[1000] flex flex-col gap-1.5">
+          <button
+            onClick={handleZoomIn}
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900/90 border border-slate-700 text-slate-200 hover:text-white hover:bg-slate-800 transition-all shadow-lg"
+            aria-label="Aumentar Zoom"
+          >
+            <ZoomIn className="h-4 w-4" />
+          </button>
+          <button
+            onClick={handleZoomOut}
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900/90 border border-slate-700 text-slate-200 hover:text-white hover:bg-slate-800 transition-all shadow-lg"
+            aria-label="Diminuir Zoom"
+          >
+            <ZoomOut className="h-4 w-4" />
+          </button>
+          <button
+            onClick={handleResetView}
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900/90 border border-slate-700 text-slate-200 hover:text-white hover:bg-slate-800 transition-all shadow-lg"
+            aria-label="Visão Global"
+            title="Resetar Visão Global"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
         </div>
-      )}
 
-      {/* Container do Mapa Leaflet com altura ajustada */}
-      <div
-        ref={mapContainerRef}
-        className="w-full h-[520px] sm:h-[620px] lg:h-[680px] bg-[#090d16] outline-none"
-        style={{ zIndex: 10 }}
-      />
-
-      {/* Controles Flutuantes Táteis de Zoom e Reset */}
-      <div className="absolute left-3 bottom-3 z-20 flex flex-col gap-1.5">
-        <button
-          onClick={handleZoomIn}
-          className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900/90 border border-slate-700 text-slate-200 hover:text-white hover:bg-slate-800 transition-all shadow-lg"
-          aria-label="Aumentar Zoom"
-        >
-          <ZoomIn className="h-4 w-4" />
-        </button>
-        <button
-          onClick={handleZoomOut}
-          className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900/90 border border-slate-700 text-slate-200 hover:text-white hover:bg-slate-800 transition-all shadow-lg"
-          aria-label="Diminuir Zoom"
-        >
-          <ZoomOut className="h-4 w-4" />
-        </button>
-        <button
-          onClick={handleResetView}
-          className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900/90 border border-slate-700 text-slate-200 hover:text-white hover:bg-slate-800 transition-all shadow-lg"
-          aria-label="Visão Global"
-          title="Resetar Visão Global"
-        >
-          <RotateCcw className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* Dica de Navegação e Rodapé Tático */}
-      <div className="absolute right-3 bottom-3 z-20 hidden sm:flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-400 pointer-events-none">
-        <span>Scroll do mouse: Zoom</span>
-        <span>•</span>
-        <span>Botão esquerdo: Arrastar</span>
-        <span>•</span>
-        <span className="text-cyan-400">CartoDB Dark Matter / OSM</span>
+        {/* Dica de Navegação e Rodapé Tático (Canto Inferior Direito do Mapa) */}
+        <div className="absolute right-3 bottom-3 z-[1000] hidden sm:flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-400 pointer-events-none">
+          <span>Scroll do mouse: Zoom</span>
+          <span>•</span>
+          <span>Botão esquerdo: Arrastar</span>
+          <span>•</span>
+          <span className="text-cyan-400">CartoDB Dark Matter / OSM</span>
+        </div>
       </div>
     </div>
   );

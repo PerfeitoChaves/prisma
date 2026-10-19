@@ -32,17 +32,33 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;1,6..72,400&display=swap"
       rel="stylesheet"
     />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <style>
       html {
         background: #f6f2ea;
       }
     </style>
     <script>
-      // Registro do Service Worker do PWA
+      // Registro do Service Worker do PWA com atualização imediata
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then((reg) => console.log('[PRISMA PWA] Ativo:', reg.scope))
+          navigator.serviceWorker.register('./sw.js?v=2')
+            .then((reg) => {
+              console.log('[PRISMA PWA] Ativo:', reg.scope);
+              reg.update();
+              reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'activated') {
+                      console.log('[PRISMA PWA] Nova versão ativada!');
+                    }
+                  });
+                }
+              });
+            })
             .catch((err) => console.warn('[PRISMA PWA] Erro:', err));
         });
       }

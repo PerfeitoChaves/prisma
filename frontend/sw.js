@@ -1,5 +1,5 @@
 // PRISMA Service Worker — Cache inteligente & Suporte Offline
-const CACHE_NAME = 'prisma-pwa-v1';
+const CACHE_NAME = 'prisma-pwa-v2';
 
 const APP_SHELL = [
   './',

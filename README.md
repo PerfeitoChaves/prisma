@@ -49,7 +49,7 @@ O script criará o ambiente virtual `.venv`, instalará as dependências e abrir
 
 ### Execução Manual
 ```bash
-cd /home/perfeito/.gemini/antigravity/scratch/fatos-cruzados
+cd /caminho/para/prisma
 
 # Ativar ambiente virtual
 source .venv/bin/activate

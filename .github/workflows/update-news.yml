@@ -2,8 +2,8 @@ name: Atualização Contínua do PRISMA
 
 on:
   schedule:
-    # Executa a cada 1 hora em ponto (24 vezes ao dia)
-    - cron: '0 * * * *'
+    # Fallback a cada 30 min; o Worker dispara antes quando há notícia nova
+    - cron: '*/30 * * * *'
   workflow_dispatch: # Permite acionar manualmente a qualquer momento pelo botão "Run workflow"
 
 permissions:

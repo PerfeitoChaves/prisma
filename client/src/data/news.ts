@@ -15,7 +15,8 @@ export type ThemeId =
   | "tecnologia"
   | "jogos"
   | "mundo"
-  | "brasil";
+  | "brasil"
+  | "ciencia";
 
 export interface Theme {
   id: ThemeId;
@@ -30,6 +31,7 @@ export const THEMES: Theme[] = [
   { id: "jogos", label: "Jogos" },
   { id: "mundo", label: "Mundo" },
   { id: "brasil", label: "Brasil" },
+  { id: "ciencia", label: "Ciência" },
 ];
 
 export const themeLabel = (id: ThemeId): string =>

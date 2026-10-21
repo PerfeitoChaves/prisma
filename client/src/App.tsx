@@ -24,6 +24,7 @@ export default function App() {
   // Cursor de paginação da API do D1 (null = não há mais pautas)
   const [nextBefore, setNextBefore] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [feedTotals, setFeedTotals] = useState<{ stories?: number; sources?: number }>({});
   const [view, setView] = useState<View>("capa");
   const [selectedHotspotId, setSelectedHotspotId] = useState<string>("ormuz");
   const [compareId, setCompareId] = useState(COVER_STORY.id);
@@ -84,7 +85,10 @@ export default function App() {
           const res = await fetch("./api/stories?limit=60&min_sources=1");
           if (res.ok) {
             data = await res.json();
-            if (mounted) setNextBefore(data?.next_before ?? null);
+            if (mounted) {
+              setNextBefore(data?.next_before ?? null);
+              setFeedTotals({ stories: data?.total_stories, sources: data?.sources_count });
+            }
           }
         } catch {
           // ambiente estático (GitHub Pages)
@@ -375,6 +379,8 @@ export default function App() {
           <CoverPage
             stories={stories}
             loading={loading}
+            totalStories={feedTotals.stories}
+            sourcesCount={feedTotals.sources}
             onLoadMore={nextBefore ? loadMoreStories : undefined}
             loadingMore={loadingMore}
             onCompare={openComparador}

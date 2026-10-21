@@ -76,7 +76,8 @@ function mapCategoryToTheme(cat?: string, slug?: string): ThemeId {
   if (c.includes("polit") || c.includes("eleic") || c.includes("poder")) return "politica";
   if (c.includes("econ") || c.includes("merc") || c.includes("finan")) return "economia";
   if (c.includes("guer") || c.includes("conflito") || c.includes("defes")) return "guerra";
-  if (c.includes("tec") || c.includes("ia") || c.includes("cienc")) return "tecnologia";
+  if (c.includes("cienc") || c.includes("paper")) return "ciencia";
+  if (c.includes("tec") || c.includes("ia")) return "tecnologia";
   if (c.includes("jog") || c.includes("game") || c.includes("esport")) return "jogos";
   if (c.includes("mund") || c.includes("internac") || c.includes("global")) return "mundo";
   return "brasil";

@@ -151,7 +151,7 @@ def cluster_articles_for_category(category: str) -> int:
 def run_clustering() -> Dict[str, int]:
     categories = get_distinct_categories()
     if not categories:
-        categories = ["brasil", "mundo", "tecnologia", "jogos", "economia", "guerra", "politica"]
+        categories = ["brasil", "mundo", "tecnologia", "jogos", "economia", "guerra", "politica", "ciencia"]
     results = {}
     total = 0
     for cat in categories:

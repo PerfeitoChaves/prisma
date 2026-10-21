@@ -139,6 +139,8 @@ function filterByTag(list: Story[], tag: string | null): Story[] {
 export default function CoverPage({
   stories = STORIES,
   loading = false,
+  totalStories,
+  sourcesCount,
   onLoadMore,
   loadingMore = false,
   onCompare,
@@ -149,6 +151,8 @@ export default function CoverPage({
 }: {
   stories?: Story[];
   loading?: boolean;
+  totalStories?: number;
+  sourcesCount?: number;
   onLoadMore?: () => void;
   loadingMore?: boolean;
   onCompare: (id: string) => void;
@@ -165,6 +169,8 @@ export default function CoverPage({
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
   const currentStories = stories.length > 0 ? stories : STORIES;
+  // Total real do acervo (API do D1); sem API, cai no que está carregado
+  const storyTotal = Math.max(totalStories ?? 0, currentStories.length);
 
   const themeFiltered = useMemo(() => {
     if (theme === "todas") return currentStories;
@@ -229,7 +235,7 @@ export default function CoverPage({
           <span className="hidden truncate px-2 sm:block">{todayLong()}</span>
           <span className="inline-flex items-center gap-1.5">
             <span className="animate-pulse-soft h-1.5 w-1.5 rounded-full bg-signal" />
-            62 fontes monitoradas · {currentStories.length} pautas
+            {sourcesCount ?? 62} fontes monitoradas · {storyTotal.toLocaleString("pt-BR")} pautas
           </span>
         </div>
 
@@ -614,7 +620,7 @@ export default function CoverPage({
       <footer className="mx-auto max-w-6xl px-4 pt-8">
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink/40 pt-4 font-mono text-[9px] uppercase tracking-[0.16em] text-ink3">
           <span>PRISMA · Painel pessoal de leitura</span>
-          <span>{currentStories.length} pautas compiladas sem ruído editorial</span>
+          <span>{storyTotal.toLocaleString("pt-BR")} pautas compiladas sem ruído editorial</span>
         </div>
       </footer>
     </div>

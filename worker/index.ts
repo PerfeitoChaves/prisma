@@ -106,6 +106,8 @@ async function ingest(request: Request, env: Env): Promise<Response> {
 
 // Espectro editorial (rótulo do veículo) em escala numérica: -2 esquerda … +2 direita
 const SV = `CASE spectrum WHEN 'left' THEN -2 WHEN 'center-left' THEN -1 WHEN 'center' THEN 0 WHEN 'center-right' THEN 1 WHEN 'right' THEN 2 END`;
+// Fontes científicas não têm espectro político: ficam fora das métricas por espectro
+const POLITICAL = `category IS NOT 'ciencia'`;
 const STATS_TTL_MS = 3 * 3600_000; // agregações varrem a tabela toda: recalcula no máx. a cada 3h (cota de leituras do D1 grátis)
 
 async function computeStats(env: Env) {
@@ -117,7 +119,7 @@ async function computeStats(env: Env) {
     q(
       `SELECT spectrum, COUNT(*) articles, COUNT(DISTINCT story_key) stories, AVG(subjectivity) subjectivity,
               AVG(subjectivity > 0) loaded_rate, AVG(sentiment != 'neutral') sensational_rate
-       FROM articles WHERE spectrum IS NOT NULL GROUP BY spectrum`
+       FROM articles WHERE spectrum IS NOT NULL AND ${POLITICAL} GROUP BY spectrum`
     ),
     // exclusive_rate: fração das pautas do veículo que nenhum outro veículo cobriu
     q(
@@ -130,7 +132,7 @@ async function computeStats(env: Env) {
     ),
     // Viés de agenda medido: espectro médio dos OUTROS veículos que cobrem as mesmas pautas
     q(
-      `WITH ss AS (SELECT DISTINCT story_key, source_id, ${SV} v FROM articles WHERE spectrum IS NOT NULL),
+      `WITH ss AS (SELECT DISTINCT story_key, source_id, ${SV} v FROM articles WHERE spectrum IS NOT NULL AND ${POLITICAL}),
             st AS (SELECT story_key, SUM(v) s, COUNT(*) n FROM ss GROUP BY story_key)
        SELECT ss.source_id, AVG((st.s - ss.v) * 1.0 / (st.n - 1)) agenda_lean, COUNT(*) shared_stories
        FROM ss JOIN st USING (story_key) WHERE st.n > 1 GROUP BY ss.source_id`
@@ -140,7 +142,7 @@ async function computeStats(env: Env) {
     ),
     // Pontos cegos: pautas cobertas só por um lado do espectro
     q(
-      `WITH st AS (SELECT story_key, MIN(${SV}) lo, MAX(${SV}) hi, COUNT(DISTINCT source_id) n FROM articles GROUP BY story_key)
+      `WITH st AS (SELECT story_key, MIN(${SV}) lo, MAX(${SV}) hi, COUNT(DISTINCT source_id) n FROM articles WHERE ${POLITICAL} GROUP BY story_key)
        SELECT CASE WHEN n = 1 THEN 'single' WHEN hi < 0 THEN 'left_only' WHEN lo > 0 THEN 'right_only'
                    WHEN lo < 0 AND hi > 0 THEN 'both_sides' ELSE 'center_mixed' END kind, COUNT(*) stories
        FROM st GROUP BY kind`
@@ -148,7 +150,7 @@ async function computeStats(env: Env) {
     q(
       `SELECT CASE WHEN ${SV} < 0 THEN 'esquerda' WHEN ${SV} > 0 THEN 'direita' ELSE 'centro' END side, w.value word, COUNT(*) n
        FROM articles, json_each(articles.loaded_words) w
-       WHERE articles.subjectivity > 0 GROUP BY side, word ORDER BY n DESC LIMIT 120`
+       WHERE articles.subjectivity > 0 AND ${POLITICAL} GROUP BY side, word ORDER BY n DESC LIMIT 120`
     ),
   ]);
 
@@ -210,7 +212,8 @@ async function listStories(url: URL, env: Env): Promise<Response> {
   // Monta o JSON por concatenação: `data` já é JSON, e parsear ~1 MB estoura a CPU do plano grátis
   const next_before = results.length === limit ? results[results.length - 1].latest_pub : null;
   const meta = before ? null : await env.DB.prepare("SELECT value FROM meta WHERE key = 'feed'").first<string>("value");
-  const head = JSON.stringify({ count: results.length, next_before }).slice(0, -1);
+  const total_stories = before ? undefined : await env.DB.prepare("SELECT COUNT(*) n FROM stories").first<number>("n");
+  const head = JSON.stringify({ count: results.length, next_before, total_stories, sources_count: sources.length }).slice(0, -1);
   const tail = meta && meta.startsWith("{") && meta.length > 2 ? `,${meta.slice(1, -1)}` : "";
   const body = `${head},"stories":[${results.map((r) => r.data).join(",")}]${tail}}`;
   return new Response(body, {

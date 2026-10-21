@@ -93,13 +93,15 @@ async function ingest(request: Request, env: Env): Promise<Response> {
   for (const s of body.stories ?? []) {
     const { key, latest } = storyKeys(s);
     const data = JSON.stringify({ ...s, id: key });
+    // created_at/updated_at mudam a cada run (SQLite novo); ficam fora do hash
+    const stable = JSON.stringify(s.articles ?? [], (k, v) => (k === "created_at" ? undefined : v)) + JSON.stringify({ ...s, id: key, articles: 0, created_at: 0, updated_at: 0 });
     // Só regrava a linha se o conteúdo mudou (economiza escritas do plano grátis)
     stmts.push(
       env.DB.prepare(
         `INSERT INTO stories (key, category, latest_pub, hash, data) VALUES (?1, ?2, ?3, ?4, ?5)
          ON CONFLICT(key) DO UPDATE SET category = excluded.category, latest_pub = excluded.latest_pub, hash = excluded.hash, data = excluded.data
          WHERE stories.hash != excluded.hash`
-      ).bind(key, s.category ?? null, latest, await sha1(data), data)
+      ).bind(key, s.category ?? null, latest, await sha1(stable), data)
     );
   }
   const meta = { stats: body.stats ?? {}, live_channels: body.live_channels ?? [], updated_at: body.updated_at ?? new Date().toISOString() };

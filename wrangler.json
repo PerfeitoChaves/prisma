@@ -4,5 +4,6 @@
   "main": "worker/index.ts",
   "compatibility_date": "2024-09-23",
   "triggers": { "crons": ["* * * * *"] },
-  "kv_namespaces": [{ "binding": "STATE", "id": "f8e5fd60f9604df6adc80f3f81aca3c8" }]
+  "kv_namespaces": [{ "binding": "STATE", "id": "f8e5fd60f9604df6adc80f3f81aca3c8" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "prisma", "database_id": "179fbd72-0afd-433c-90a4-a481171b08cb" }]
 }

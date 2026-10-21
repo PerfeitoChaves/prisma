@@ -139,6 +139,8 @@ function filterByTag(list: Story[], tag: string | null): Story[] {
 export default function CoverPage({
   stories = STORIES,
   loading = false,
+  onLoadMore,
+  loadingMore = false,
   onCompare,
   onRead,
   saved,
@@ -147,6 +149,8 @@ export default function CoverPage({
 }: {
   stories?: Story[];
   loading?: boolean;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
   onCompare: (id: string) => void;
   onRead: (id: string) => void;
   saved: string[];
@@ -591,6 +595,19 @@ export default function CoverPage({
             </>
           )}
         </>
+      )}
+
+      {onLoadMore && (
+        <div className="mx-auto flex max-w-6xl justify-center px-4 pt-6">
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="border border-ink px-5 py-2 font-mono text-[11px] uppercase tracking-[0.16em] hover:bg-ink hover:text-paper disabled:opacity-50"
+          >
+            {loadingMore ? "Carregando…" : "Carregar pautas anteriores"}
+          </button>
+        </div>
       )}
 
       {/* Colofão limpo */}

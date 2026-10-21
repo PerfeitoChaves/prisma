@@ -38,3 +38,4 @@ uploaded_ref_2/
 # Sistema
 .DS_Store
 Thumbs.db
+.wrangler/

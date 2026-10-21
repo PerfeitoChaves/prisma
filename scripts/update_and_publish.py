@@ -10,6 +10,7 @@ import sys
 import json
 import asyncio
 import subprocess
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -57,7 +58,20 @@ async def main():
         "live_channels": live_channels,
     }
 
-    # 5. Salva o feed leve data/latest.json em docs/, frontend/ e client/public/
+    # 5a. No GitHub Actions: envia as pautas para o D1 via Worker e encerra (sem commit, sem rebuild)
+    ingest_token = os.environ.get("PRISMA_INGEST_TOKEN")
+    if ingest_token:
+        req = urllib.request.Request(
+            os.environ.get("PRISMA_INGEST_URL", "https://pchaves.org/prisma/api/ingest"),
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers={"Authorization": f"Bearer {ingest_token}", "Content-Type": "application/json", "User-Agent": "prisma-ingest/1.0"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=60) as res:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Enviado ao D1: {res.read().decode()}")
+        return
+
+    # 5b. Local: salva o feed leve data/latest.json em docs/, frontend/ e client/public/
     for out_dir in [
         BASE_DIR / "docs" / "data",
         BASE_DIR / "frontend" / "data",

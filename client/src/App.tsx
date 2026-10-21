@@ -20,6 +20,9 @@ export type View = "capa" | "comparador" | "tensoes" | "radar" | "aovivo" | (str
 export default function App() {
   const [stories, setStories] = useState<Story[]>(STORIES);
   const [loading, setLoading] = useState(true);
+  // Cursor de paginação da API do D1 (null = não há mais pautas)
+  const [nextBefore, setNextBefore] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [view, setView] = useState<View>("capa");
   const [selectedHotspotId, setSelectedHotspotId] = useState<string>("ormuz");
   const [compareId, setCompareId] = useState(COVER_STORY.id);
@@ -75,10 +78,13 @@ export default function App() {
     async function loadApiStories() {
       try {
         let data = null;
-        // 1. Tenta API local do FastAPI (se estiver rodando com backend ativo)
+        // 1. Tenta a API (Worker + D1 em pchaves.org/prisma/api, ou FastAPI local em /api)
         try {
-          const res = await fetch("/api/stories?limit=60&min_sources=1");
-          if (res.ok) data = await res.json();
+          const res = await fetch("./api/stories?limit=60&min_sources=1");
+          if (res.ok) {
+            data = await res.json();
+            if (mounted) setNextBefore(data?.next_before ?? null);
+          }
         } catch {
           // ambiente estático (GitHub Pages)
         }
@@ -304,6 +310,26 @@ export default function App() {
     setActiveMedia(null);
   }, []);
 
+  const loadMoreStories = useCallback(async () => {
+    if (!nextBefore || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`./api/stories?limit=60&before=${encodeURIComponent(nextBefore)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const older: Story[] = (data.stories ?? []).map((s: ApiStory) => mapApiStoryToStory(s));
+      setStories((prev) => {
+        const existingIds = new Set(prev.map((s) => s.id));
+        return [...prev, ...older.filter((s) => !existingIds.has(s.id))];
+      });
+      setNextBefore(data.next_before ?? null);
+    } catch (err) {
+      console.warn("[App] Falha ao carregar mais pautas:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [nextBefore, loadingMore]);
+
   const handleAddStories = useCallback((newStories: Story[]) => {
     setStories((prev) => {
       const existingIds = new Set(prev.map((s) => s.id));
@@ -346,6 +372,8 @@ export default function App() {
           <CoverPage
             stories={stories}
             loading={loading}
+            onLoadMore={nextBefore ? loadMoreStories : undefined}
+            loadingMore={loadingMore}
             onCompare={openComparador}
             onRead={setReaderId}
             saved={saved}

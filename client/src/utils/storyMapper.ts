@@ -71,7 +71,7 @@ function formatTime(isoString?: string): string {
   }
 }
 
-function mapCategoryToTheme(cat?: string, slug?: string): ThemeId {
+export function mapCategoryToTheme(cat?: string, slug?: string): ThemeId {
   const c = (cat || slug || "").toLowerCase();
   if (c.includes("polit") || c.includes("eleic") || c.includes("poder")) return "politica";
   if (c.includes("econ") || c.includes("merc") || c.includes("finan")) return "economia";

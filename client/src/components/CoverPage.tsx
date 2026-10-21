@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "../utils/cn";
 import {
   STORIES,
@@ -141,7 +141,9 @@ export default function CoverPage({
   loading = false,
   totalStories,
   sourcesCount,
+  themeCounts,
   onLoadMore,
+  hasMore,
   loadingMore = false,
   onCompare,
   onRead,
@@ -153,7 +155,9 @@ export default function CoverPage({
   loading?: boolean;
   totalStories?: number;
   sourcesCount?: number;
-  onLoadMore?: () => void;
+  themeCounts?: Record<string, number>;
+  onLoadMore?: (theme?: string) => void;
+  hasMore?: (theme?: string) => boolean;
   loadingMore?: boolean;
   onCompare: (id: string) => void;
   onRead: (id: string) => void;
@@ -169,6 +173,14 @@ export default function CoverPage({
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
   const currentStories = stories.length > 0 ? stories : STORIES;
+  const activeTheme = theme === "todas" ? undefined : theme;
+
+  // Ao escolher um tema, busca as pautas dele no acervo (as 60 iniciais são só as mais recentes)
+  const loadedForTheme = activeTheme ? currentStories.filter((s) => s.theme === activeTheme).length : 0;
+  useEffect(() => {
+    if (activeTheme && loadedForTheme < 20 && hasMore?.(activeTheme)) onLoadMore?.(activeTheme);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTheme]);
   // Total real do acervo (API do D1); sem API, cai no que está carregado
   const storyTotal = Math.max(totalStories ?? 0, currentStories.length);
 
@@ -303,12 +315,12 @@ export default function CoverPage({
         <div className="no-scrollbar mx-auto flex max-w-6xl gap-2 overflow-x-auto px-3 py-2 sm:px-4">
           <ThemePill
             label="Todas"
-            count={currentStories.length}
+            count={storyTotal}
             active={theme === "todas"}
             onClick={() => setTheme("todas")}
           />
           {THEMES.map((t) => {
-            const count = currentStories.filter((s) => s.theme === t.id).length;
+            const count = Math.max(themeCounts?.[t.id] ?? 0, currentStories.filter((s) => s.theme === t.id).length);
             if (count === 0 && theme !== t.id) return null;
             return (
               <ThemePill
@@ -603,11 +615,11 @@ export default function CoverPage({
         </>
       )}
 
-      {onLoadMore && (
+      {onLoadMore && hasMore?.(activeTheme) && (
         <div className="mx-auto flex max-w-6xl justify-center px-4 pt-6">
           <button
             type="button"
-            onClick={onLoadMore}
+            onClick={() => onLoadMore(activeTheme)}
             disabled={loadingMore}
             className="border border-ink px-5 py-2 font-mono text-[11px] uppercase tracking-[0.16em] hover:bg-ink hover:text-paper disabled:opacity-50"
           >

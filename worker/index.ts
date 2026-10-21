@@ -212,8 +212,15 @@ async function listStories(url: URL, env: Env): Promise<Response> {
   // Monta o JSON por concatenação: `data` já é JSON, e parsear ~1 MB estoura a CPU do plano grátis
   const next_before = results.length === limit ? results[results.length - 1].latest_pub : null;
   const meta = before ? null : await env.DB.prepare("SELECT value FROM meta WHERE key = 'feed'").first<string>("value");
-  const total_stories = before ? undefined : await env.DB.prepare("SELECT COUNT(*) n FROM stories").first<number>("n");
-  const head = JSON.stringify({ count: results.length, next_before, total_stories, sources_count: sources.length }).slice(0, -1);
+  // Contagem real por editoria (para os filtros da capa); só na primeira página
+  let total_stories: number | undefined;
+  let category_counts: Record<string, number> | undefined;
+  if (!before) {
+    const { results: cats } = await env.DB.prepare("SELECT category, COUNT(*) n FROM stories GROUP BY category").all<{ category: string | null; n: number }>();
+    category_counts = Object.fromEntries(cats.map((c) => [c.category ?? "brasil", c.n]));
+    total_stories = cats.reduce((acc, c) => acc + c.n, 0);
+  }
+  const head = JSON.stringify({ count: results.length, next_before, total_stories, category_counts, sources_count: sources.length }).slice(0, -1);
   const tail = meta && meta.startsWith("{") && meta.length > 2 ? `,${meta.slice(1, -1)}` : "";
   const body = `${head},"stories":[${results.map((r) => r.data).join(",")}]${tail}}`;
   return new Response(body, {

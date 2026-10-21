@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { COVER_STORY, STORIES, type Story } from "./data/news";
 import { DEFAULT_MEDIA_ITEM, RADIO_STATIONS, TV_CHANNELS, type LiveMediaItem } from "./data/media";
-import { mapApiStoryToStory, type ApiStory } from "./utils/storyMapper";
+import { mapApiStoryToStory, mapCategoryToTheme, type ApiStory } from "./utils/storyMapper";
 import { Dock, TopBar } from "./components/Chrome";
 import CoverPage from "./components/CoverPage";
 import Comparator from "./components/Comparator";
@@ -25,6 +25,9 @@ export default function App() {
   const [nextBefore, setNextBefore] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [feedTotals, setFeedTotals] = useState<{ stories?: number; sources?: number }>({});
+  // Contagem real por tema (D1) e cursor de paginação por tema (undefined = ainda não buscado)
+  const [themeCounts, setThemeCounts] = useState<Record<string, number>>({});
+  const [themeCursors, setThemeCursors] = useState<Record<string, string | null>>({});
   const [view, setView] = useState<View>("capa");
   const [selectedHotspotId, setSelectedHotspotId] = useState<string>("ormuz");
   const [compareId, setCompareId] = useState(COVER_STORY.id);
@@ -88,6 +91,12 @@ export default function App() {
             if (mounted) {
               setNextBefore(data?.next_before ?? null);
               setFeedTotals({ stories: data?.total_stories, sources: data?.sources_count });
+              const counts: Record<string, number> = {};
+              for (const [cat, n] of Object.entries((data?.category_counts ?? {}) as Record<string, number>)) {
+                const t = mapCategoryToTheme(cat);
+                counts[t] = (counts[t] ?? 0) + n;
+              }
+              setThemeCounts(counts);
             }
           }
         } catch {
@@ -317,25 +326,39 @@ export default function App() {
     setActiveMedia(null);
   }, []);
 
-  const loadMoreStories = useCallback(async () => {
-    if (!nextBefore || loadingMore) return;
-    setLoadingMore(true);
-    try {
-      const res = await fetch(`./api/stories?limit=60&before=${encodeURIComponent(nextBefore)}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const older: Story[] = (data.stories ?? []).map((s: ApiStory) => mapApiStoryToStory(s));
-      setStories((prev) => {
-        const existingIds = new Set(prev.map((s) => s.id));
-        return [...prev, ...older.filter((s) => !existingIds.has(s.id))];
-      });
-      setNextBefore(data.next_before ?? null);
-    } catch (err) {
-      console.warn("[App] Falha ao carregar mais pautas:", err);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [nextBefore, loadingMore]);
+  /* Pagina o acervo do D1: sem tema usa o cursor geral; com tema filtra por editoria no servidor */
+  const loadMoreStories = useCallback(
+    async (theme?: string) => {
+      const before = theme ? themeCursors[theme] : nextBefore;
+      if (loadingMore || before === null || (!theme && !before)) return;
+      setLoadingMore(true);
+      try {
+        const params = new URLSearchParams({ limit: "60" });
+        if (before) params.set("before", before);
+        if (theme) params.set("category", theme);
+        const res = await fetch(`./api/stories?${params}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const older: Story[] = (data.stories ?? []).map((s: ApiStory) => mapApiStoryToStory(s));
+        setStories((prev) => {
+          const existingIds = new Set(prev.map((s) => s.id));
+          return [...prev, ...older.filter((s) => !existingIds.has(s.id))];
+        });
+        if (theme) setThemeCursors((c) => ({ ...c, [theme]: data.next_before ?? null }));
+        else setNextBefore(data.next_before ?? null);
+      } catch (err) {
+        console.warn("[App] Falha ao carregar mais pautas:", err);
+      } finally {
+        setLoadingMore(false);
+      }
+    },
+    [nextBefore, themeCursors, loadingMore]
+  );
+
+  const hasMoreStories = useCallback(
+    (theme?: string) => (theme ? themeCursors[theme] !== null && (themeCounts[theme] ?? 0) > 0 : !!nextBefore),
+    [nextBefore, themeCursors, themeCounts]
+  );
 
   const handleAddStories = useCallback((newStories: Story[]) => {
     setStories((prev) => {
@@ -381,7 +404,9 @@ export default function App() {
             loading={loading}
             totalStories={feedTotals.stories}
             sourcesCount={feedTotals.sources}
-            onLoadMore={nextBefore ? loadMoreStories : undefined}
+            themeCounts={themeCounts}
+            onLoadMore={loadMoreStories}
+            hasMore={hasMoreStories}
             loadingMore={loadingMore}
             onCompare={openComparador}
             onRead={setReaderId}

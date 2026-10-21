@@ -230,7 +230,8 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/prisma") return Response.redirect(`${url.origin}/prisma/`, 301);
-    if (url.pathname === "/prisma/api/ingest" && request.method === "POST") return ingest(request, env);
+    if (url.pathname === "/prisma/api/ingest" && request.method === "POST")
+      return ingest(request, env).catch((e) => json({ error: String(e) }, 500));
     if (url.pathname === "/prisma/api/stories") return listStories(url, env);
     if (url.pathname === "/prisma/api/stats") return stats(env);
     const path = url.pathname.startsWith("/prisma/") ? url.pathname : `/prisma${url.pathname}`;

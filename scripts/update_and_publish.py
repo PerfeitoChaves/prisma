@@ -11,6 +11,7 @@ import json
 import hashlib
 import asyncio
 import subprocess
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -120,6 +121,7 @@ async def main():
     # 5a. No GitHub Actions: envia as pautas para o D1 via Worker e encerra (sem commit, sem rebuild)
     ingest_token = os.environ.get("PRISMA_INGEST_TOKEN")
     if ingest_token:
+        failed = 0
         # Lotes de 50 pautas: um POST de ~1 MB cabe nos 10 ms de CPU do Worker grátis
         for i in range(0, max(len(stories), 1), 50):
             req = urllib.request.Request(
@@ -128,8 +130,14 @@ async def main():
                 headers={"Authorization": f"Bearer {ingest_token}", "Content-Type": "application/json", "User-Agent": "prisma-ingest/1.0"},
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=60) as res:
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Enviado ao D1 (lote {i // 50 + 1}): {res.read().decode()}")
+            try:
+                with urllib.request.urlopen(req, timeout=60) as res:
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Enviado ao D1 (lote {i // 50 + 1}): {res.read().decode()}")
+            except urllib.error.HTTPError as e:
+                failed += 1
+                print(f"[ERRO D1] lote {i // 50 + 1}: HTTP {e.code} {e.read().decode()[:500]}")
+        if failed:
+            sys.exit(1)
         return
 
     # 5b. Local: salva o feed leve data/latest.json em docs/, frontend/ e client/public/

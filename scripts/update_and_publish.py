@@ -98,7 +98,8 @@ async def main():
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Agrupamento finalizado: {cluster_res.get('total_stories', 0)} pautas identificadas.")
 
     # 4. Obtém as pautas consolidadas e canais ao vivo
-    stories = get_stories(limit=60, min_sources=1)
+    # Com D1 (Action) envia bem mais pautas; o latest.json local continua leve
+    stories = get_stories(limit=300 if os.environ.get("PRISMA_INGEST_TOKEN") else 60, min_sources=1)
     stats = get_database_stats()
     now_utc = datetime.now(timezone.utc)
 
@@ -119,14 +120,16 @@ async def main():
     # 5a. No GitHub Actions: envia as pautas para o D1 via Worker e encerra (sem commit, sem rebuild)
     ingest_token = os.environ.get("PRISMA_INGEST_TOKEN")
     if ingest_token:
-        req = urllib.request.Request(
-            os.environ.get("PRISMA_INGEST_URL", "https://pchaves.org/prisma/api/ingest"),
-            data=json.dumps(build_ingest(payload), ensure_ascii=False).encode("utf-8"),
-            headers={"Authorization": f"Bearer {ingest_token}", "Content-Type": "application/json", "User-Agent": "prisma-ingest/1.0"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=60) as res:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Enviado ao D1: {res.read().decode()}")
+        # Lotes de 50 pautas: um POST de ~1 MB cabe nos 10 ms de CPU do Worker grátis
+        for i in range(0, max(len(stories), 1), 50):
+            req = urllib.request.Request(
+                os.environ.get("PRISMA_INGEST_URL", "https://pchaves.org/prisma/api/ingest"),
+                data=json.dumps(build_ingest({**payload, "stories": stories[i:i + 50]}), ensure_ascii=False).encode("utf-8"),
+                headers={"Authorization": f"Bearer {ingest_token}", "Content-Type": "application/json", "User-Agent": "prisma-ingest/1.0"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=60) as res:
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Enviado ao D1 (lote {i // 50 + 1}): {res.read().decode()}")
         return
 
     # 5b. Local: salva o feed leve data/latest.json em docs/, frontend/ e client/public/

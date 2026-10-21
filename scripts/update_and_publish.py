@@ -100,7 +100,7 @@ async def main():
 
     # 4. Obtém as pautas consolidadas e canais ao vivo
     # Com D1 (Action) envia bem mais pautas; o latest.json local continua leve
-    stories = get_stories(limit=300 if os.environ.get("PRISMA_INGEST_TOKEN") else 60, min_sources=1)
+    stories = get_stories(limit=150 if os.environ.get("PRISMA_INGEST_TOKEN") else 60, min_sources=1)
     stats = get_database_stats()
     now_utc = datetime.now(timezone.utc)
 

@@ -11,7 +11,7 @@ const ORIGIN = "https://perfeitochaves.github.io";
 const REPO = "PerfeitoChaves/prisma";
 const WORKFLOW = "update-news.yml";
 const SLICES = 3; // ~29 feeds por minuto, cada feed é verificado a cada 3 min (limite de 50 subrequests no plano grátis)
-const MIN_GAP_MS = 5 * 60_000; // intervalo mínimo entre disparos do workflow
+const MIN_GAP_MS = 20 * 60_000; // intervalo mínimo entre disparos do workflow (cota de 100k escritas/dia do D1 grátis)
 
 type State = { heads: Record<string, string>; lastDispatch: number };
 

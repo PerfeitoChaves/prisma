@@ -2,7 +2,6 @@ import { BarChart3, Globe, Radio, TrendingUp } from "lucide-react";
 import { cn } from "../utils/cn";
 import { TICKER } from "../data/news";
 import { IBookmark, ICompare, INewspaper, ISearch } from "./icons";
-import { PrismaLogo } from "./PrismaComponents";
 
 export function todayLong(): string {
   return new Date().toLocaleDateString("pt-BR", {
@@ -34,21 +33,13 @@ export function TopBar({
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-3 md:px-4">
         <button
           onClick={() => onNav("capa")}
-          className="flex min-h-[44px] items-center gap-2.5 rounded-lg pr-2"
+          className="flex min-h-[44px] shrink-0 items-center font-display text-[19px] font-black leading-none tracking-[0.06em] text-ink"
           aria-label="PRISMA — voltar à capa"
         >
-          <PrismaLogo size={36} />
-          <div className="flex flex-col text-left">
-            <span className="font-display text-[19px] font-black tracking-[0.06em] text-ink leading-none">
-              PRISMA
-            </span>
-            <span className="hidden font-mono text-[8.5px] uppercase tracking-wider text-ink3 sm:block">
-              A mesma história, todos os ângulos
-            </span>
-          </div>
+          PRISMA
         </button>
 
-        <nav className="hidden h-full items-center md:flex" aria-label="Seções">
+        <nav className="hidden h-full min-w-0 flex-1 items-center justify-center gap-1 md:flex lg:gap-2" aria-label="Seções">
           {(
             [
               ["capa", "Capa"],
@@ -63,7 +54,7 @@ export function TopBar({
               key={id}
               onClick={() => onNav(id)}
               className={cn(
-                "flex h-14 items-center gap-1.5 border-b-2 px-4 text-[11.5px] font-bold uppercase tracking-[0.16em] transition-colors",
+                "flex h-14 items-center gap-1.5 whitespace-nowrap border-b-2 px-2 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors lg:px-3",
                 view === id
                   ? "border-ink text-ink"
                   : "border-transparent text-ink3 hover:text-ink"
@@ -80,10 +71,7 @@ export function TopBar({
           ))}
         </nav>
 
-        <div className="flex items-center gap-0.5">
-          <span className="mr-2 hidden text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink3 xl:block">
-            {todayLong()}
-          </span>
+        <div className="flex shrink-0 items-center gap-0.5">
           <button
             onClick={onSearch}
             className="flex h-11 w-11 items-center justify-center rounded-lg text-ink2 transition-colors hover:bg-ink/5 hover:text-ink"
@@ -110,19 +98,7 @@ export function TopBar({
 }
 
 /* ---------- dock flutuante (mobile) ---------- */
-export function Dock({
-  view,
-  onNav,
-  onSearch,
-  onSaved,
-  savedCount,
-}: {
-  view: NavView;
-  onNav: (v: NavView) => void;
-  onSearch: () => void;
-  onSaved: () => void;
-  savedCount: number;
-}) {
+export function Dock({ view, onNav }: { view: NavView; onNav: (v: NavView) => void }) {
   const items = [
     {
       id: "capa" as const,
@@ -167,22 +143,13 @@ export function Dock({
       active: view === "estatisticas",
       action: () => onNav("estatisticas"),
     },
-    { id: "buscar" as const, label: "Buscar", icon: ISearch, active: false, action: onSearch },
-    {
-      id: "salvos" as const,
-      label: "Salvos",
-      icon: IBookmark,
-      active: false,
-      action: onSaved,
-      badge: savedCount,
-    },
   ];
   return (
     <nav
       className="fixed inset-x-2 sm:inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 md:hidden"
       aria-label="Navegação principal"
     >
-      <div className="glass grid grid-cols-7 overflow-hidden rounded-xl border border-rule shadow-[0_14px_36px_-14px_rgba(29,26,22,0.4)]">
+      <div className="glass grid grid-cols-6 overflow-hidden rounded-xl border border-rule shadow-[0_14px_36px_-14px_rgba(29,26,22,0.4)]">
         {items.map((it) => (
           <button
             key={it.id}
@@ -205,11 +172,6 @@ export function Dock({
             <span className="text-[7.5px] sm:text-[9px] font-bold uppercase tracking-[0.04em] sm:tracking-[0.08em] truncate max-w-full">
               {it.label}
             </span>
-            {!!it.badge && it.badge > 0 && (
-              <span className="absolute right-[calc(50%-18px)] sm:right-[calc(50%-22px)] top-1 flex h-3.5 sm:h-4 min-w-3.5 sm:min-w-4 items-center justify-center rounded-full bg-press px-1 text-[8px] sm:text-[9px] font-bold text-paper2">
-                {it.badge}
-              </span>
-            )}
             {it.liveDot && !it.active && (
               <span className="absolute right-[calc(50%-14px)] sm:right-[calc(50%-18px)] top-1.5 sm:top-2 flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-press opacity-75" />

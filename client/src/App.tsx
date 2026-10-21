@@ -443,13 +443,7 @@ export default function App() {
         onOpenAoVivoView={openAoVivo}
       />
 
-      <Dock
-        view={view}
-        onNav={handleNav}
-        onSearch={() => setSearchOpen(true)}
-        onSaved={() => setSavedOpen(true)}
-        savedCount={saved.length}
-      />
+      <Dock view={view} onNav={handleNav} />
 
       {readerStory && (
         <Reader

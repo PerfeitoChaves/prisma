@@ -254,9 +254,9 @@ export default function StatsView() {
           Medido, não declarado: para cada pauta que o veículo cobre, a média do espectro dos <em>outros</em> veículos que também a
           cobriram (−2 esquerda … +2 direita). Quem cobre o que a direita cobre, pende à direita, seja qual for o rótulo.
         </SectionTitle>
-        <div className="grid gap-x-8 gap-y-1.5 md:grid-cols-2">
+        <div className="gap-x-8 md:columns-2">
           {byLean.map((s) => (
-            <div key={s.source_id} className="grid grid-cols-[minmax(0,9rem)_1fr_3.5rem] items-center gap-2 text-[12.5px]">
+            <div key={s.source_id} className="mb-1.5 grid break-inside-avoid grid-cols-[minmax(0,9rem)_1fr_3.5rem] items-center gap-2 text-[12.5px]">
               <span className="truncate" title={s.source_name}>
                 <span className="mr-1.5 inline-block h-2 w-2" style={{ background: SPEC[s.spectrum]?.color }} />
                 {s.source_name}

@@ -3,3 +3,6 @@ CREATE TABLE IF NOT EXISTS stories (key TEXT PRIMARY KEY, category TEXT, latest_
 CREATE INDEX IF NOT EXISTS stories_pub ON stories (latest_pub DESC);
 CREATE INDEX IF NOT EXISTS stories_cat_pub ON stories (category, latest_pub DESC);
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS articles (id TEXT PRIMARY KEY, story_key TEXT NOT NULL, source_id TEXT NOT NULL, source_name TEXT, spectrum TEXT, category TEXT, published_at TEXT, subjectivity REAL, sentiment TEXT, loaded_words TEXT);
+CREATE INDEX IF NOT EXISTS articles_source ON articles (source_id);
+CREATE INDEX IF NOT EXISTS articles_story ON articles (story_key);

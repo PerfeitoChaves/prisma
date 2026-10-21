@@ -8,6 +8,7 @@ import Comparator from "./components/Comparator";
 import LiveMediaView from "./components/LiveMediaView";
 import PersistentLivePlayer from "./components/PersistentLivePlayer";
 import RadarView from "./components/RadarView";
+import StatsView from "./components/StatsView";
 import Reader from "./components/Reader";
 import TensionsView from "./components/geopolitics/TensionsView";
 import { normalizeHotspotId } from "./data/geopolitics";
@@ -239,6 +240,8 @@ export default function App() {
           setView("radar");
         } else if (hash === "#aovivo") {
           setView("aovivo");
+        } else if (hash === "#estatisticas") {
+          setView("estatisticas");
         } else if (hash.startsWith("#comparador")) {
           const queryIdx = hash.indexOf("?");
           if (queryIdx >= 0) {
@@ -420,6 +423,8 @@ export default function App() {
             onSelectChannel={handleSelectChannel}
             onTogglePlay={handleTogglePlay}
           />
+        ) : view === "estatisticas" ? (
+          <StatsView />
         ) : null}
       </main>
 

@@ -1,4 +1,4 @@
-import { Globe, Radio, TrendingUp } from "lucide-react";
+import { BarChart3, Globe, Radio, TrendingUp } from "lucide-react";
 import { cn } from "../utils/cn";
 import { TICKER } from "../data/news";
 import { IBookmark, ICompare, INewspaper, ISearch } from "./icons";
@@ -56,6 +56,7 @@ export function TopBar({
               ["tensoes", "Tensões"],
               ["radar", "Radar X"],
               ["aovivo", "Ao Vivo"],
+              ["estatisticas", "Estatísticas"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -158,6 +159,13 @@ export function Dock({
       active: view === "aovivo",
       action: () => onNav("aovivo"),
       liveDot: true,
+    },
+    {
+      id: "estatisticas" as const,
+      label: "Dados",
+      icon: BarChart3,
+      active: view === "estatisticas",
+      action: () => onNav("estatisticas"),
     },
     { id: "buscar" as const, label: "Buscar", icon: ISearch, active: false, action: onSearch },
     {

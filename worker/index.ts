@@ -60,8 +60,13 @@ async function watch(env: Env, now: number): Promise<void> {
   await env.STATE.put("state", JSON.stringify(state));
 }
 
-type Article = { id: string; published_at?: string | null; created_at?: string | null };
-type ApiStory = { id: number | string; category?: string; updated_at?: string; articles?: Article[] };
+// Formato montado por scripts/update_and_publish.py (build_ingest): chave, hash e linhas de matéria
+// já vêm prontos e `data`/`articles` chegam como strings, para o Worker caber nos 10 ms de CPU do plano grátis.
+type IngestBody = {
+  stories: { key: string; category: string | null; latest_pub: string; hash: string; data: string }[];
+  articles: string;
+  meta: string;
+};
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -69,47 +74,124 @@ const json = (body: unknown, status = 200) =>
     headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=30" },
   });
 
-async function sha1(text: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(text));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-// O SQLite do Action é recriado a cada run, então o id numérico da pauta muda.
-// Chave estável: o artigo mais antigo do cluster (artigos novos entram depois dele).
-function storyKeys(s: ApiStory) {
-  const arts = (s.articles ?? []).map((a) => ({ id: a.id, pub: a.published_at || a.created_at || "" }));
-  arts.sort((a, b) => a.pub.localeCompare(b.pub) || a.id.localeCompare(b.id));
-  const key = arts[0]?.id ?? `s${s.id}`;
-  const latest = arts.reduce((m, a) => (a.pub > m ? a.pub : m), "") || s.updated_at || new Date().toISOString();
-  return { key, latest };
-}
-
 // POST /prisma/api/ingest — chamado pelo GitHub Action com as pautas do ciclo
 async function ingest(request: Request, env: Env): Promise<Response> {
   if (request.headers.get("Authorization") !== `Bearer ${env.INGEST_TOKEN}`) return json({ error: "unauthorized" }, 401);
-  const body = (await request.json()) as { stories: ApiStory[]; stats?: unknown; live_channels?: unknown; updated_at?: string };
+  const body = (await request.json()) as IngestBody;
 
-  const stmts: D1PreparedStatement[] = [];
-  for (const s of body.stories ?? []) {
-    const { key, latest } = storyKeys(s);
-    const data = JSON.stringify({ ...s, id: key });
-    // created_at/updated_at mudam a cada run (SQLite novo); ficam fora do hash
-    const stable = JSON.stringify(s.articles ?? [], (k, v) => (k === "created_at" ? undefined : v)) + JSON.stringify({ ...s, id: key, articles: 0, created_at: 0, updated_at: 0 });
-    // Só regrava a linha se o conteúdo mudou (economiza escritas do plano grátis)
-    stmts.push(
-      env.DB.prepare(
-        `INSERT INTO stories (key, category, latest_pub, hash, data) VALUES (?1, ?2, ?3, ?4, ?5)
-         ON CONFLICT(key) DO UPDATE SET category = excluded.category, latest_pub = excluded.latest_pub, hash = excluded.hash, data = excluded.data
-         WHERE stories.hash != excluded.hash`
-      ).bind(key, s.category ?? null, latest, await sha1(stable), data)
-    );
-  }
-  const meta = { stats: body.stats ?? {}, live_channels: body.live_channels ?? [], updated_at: body.updated_at ?? new Date().toISOString() };
-  stmts.push(env.DB.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('feed', ?1)").bind(JSON.stringify(meta)));
+  // Só regrava a pauta se o conteúdo mudou (economiza escritas do plano grátis)
+  const upsert = env.DB.prepare(
+    `INSERT INTO stories (key, category, latest_pub, hash, data) VALUES (?1, ?2, ?3, ?4, ?5)
+     ON CONFLICT(key) DO UPDATE SET category = excluded.category, latest_pub = excluded.latest_pub, hash = excluded.hash, data = excluded.data
+     WHERE stories.hash != excluded.hash`
+  );
+  const stmts = body.stories.map((s) => upsert.bind(s.key, s.category, s.latest_pub, s.hash, s.data));
+  // Matérias num único INSERT via json_each, para não estourar o limite de queries por invocação
+  stmts.push(
+    env.DB.prepare(
+      `INSERT INTO articles (id, story_key, source_id, source_name, spectrum, category, published_at, subjectivity, sentiment, loaded_words)
+       SELECT j.value ->> 'id', j.value ->> 'story_key', j.value ->> 'source_id', j.value ->> 'source_name', j.value ->> 'spectrum',
+              j.value ->> 'category', j.value ->> 'published_at', j.value ->> 'subjectivity', j.value ->> 'sentiment', j.value ->> 'loaded_words'
+       FROM json_each(?1) j WHERE true
+       ON CONFLICT(id) DO UPDATE SET story_key = excluded.story_key WHERE articles.story_key != excluded.story_key`
+    ).bind(body.articles)
+  );
+  stmts.push(env.DB.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('feed', ?1)").bind(body.meta));
 
   const res = await env.DB.batch(stmts);
-  const written = res.slice(0, -1).reduce((n, r) => n + (r.meta.changes ?? 0), 0);
-  return json({ received: stmts.length - 1, written });
+  const n = body.stories.length;
+  const written = res.slice(0, n).reduce((acc, r) => acc + (r.meta.changes ?? 0), 0);
+  return json({ received: n, written, articles: res[n].meta.changes ?? 0 });
+}
+
+// Espectro editorial (rótulo do veículo) em escala numérica: -2 esquerda … +2 direita
+const SV = `CASE spectrum WHEN 'left' THEN -2 WHEN 'center-left' THEN -1 WHEN 'center' THEN 0 WHEN 'center-right' THEN 1 WHEN 'right' THEN 2 END`;
+const STATS_TTL_MS = 3 * 3600_000; // agregações varrem a tabela toda: recalcula no máx. a cada 3h (cota de leituras do D1 grátis)
+
+async function computeStats(env: Env) {
+  const q = <T>(sql: string) => env.DB.prepare(sql).all<T>().then((r) => r.results);
+  const [totals, bySpectrum, bySource, lean, sourceCats, coverage, words] = await Promise.all([
+    q<Record<string, number | string>>(
+      `SELECT COUNT(*) articles, COUNT(DISTINCT story_key) stories, COUNT(DISTINCT source_id) sources, MIN(published_at) first, MAX(published_at) last FROM articles`
+    ),
+    q(
+      `SELECT spectrum, COUNT(*) articles, COUNT(DISTINCT story_key) stories, AVG(subjectivity) subjectivity,
+              AVG(subjectivity > 0) loaded_rate, AVG(sentiment != 'neutral') sensational_rate
+       FROM articles WHERE spectrum IS NOT NULL GROUP BY spectrum`
+    ),
+    // exclusive_rate: fração das pautas do veículo que nenhum outro veículo cobriu
+    q(
+      `WITH st AS (SELECT story_key, COUNT(DISTINCT source_id) n FROM articles GROUP BY story_key)
+       SELECT a.source_id, MAX(a.source_name) source_name, MAX(a.spectrum) spectrum, COUNT(*) articles,
+              COUNT(DISTINCT a.story_key) stories, AVG(a.subjectivity) subjectivity, AVG(a.subjectivity > 0) loaded_rate,
+              AVG(a.sentiment != 'neutral') sensational_rate,
+              COUNT(DISTINCT CASE WHEN st.n = 1 THEN a.story_key END) * 1.0 / COUNT(DISTINCT a.story_key) exclusive_rate
+       FROM articles a JOIN st USING (story_key) GROUP BY a.source_id`
+    ),
+    // Viés de agenda medido: espectro médio dos OUTROS veículos que cobrem as mesmas pautas
+    q(
+      `WITH ss AS (SELECT DISTINCT story_key, source_id, ${SV} v FROM articles WHERE spectrum IS NOT NULL),
+            st AS (SELECT story_key, SUM(v) s, COUNT(*) n FROM ss GROUP BY story_key)
+       SELECT ss.source_id, AVG((st.s - ss.v) * 1.0 / (st.n - 1)) agenda_lean, COUNT(*) shared_stories
+       FROM ss JOIN st USING (story_key) WHERE st.n > 1 GROUP BY ss.source_id`
+    ),
+    q<{ source_id: string; category: string; n: number }>(
+      `SELECT source_id, category, COUNT(*) n FROM articles GROUP BY source_id, category`
+    ),
+    // Pontos cegos: pautas cobertas só por um lado do espectro
+    q(
+      `WITH st AS (SELECT story_key, MIN(${SV}) lo, MAX(${SV}) hi, COUNT(DISTINCT source_id) n FROM articles GROUP BY story_key)
+       SELECT CASE WHEN n = 1 THEN 'single' WHEN hi < 0 THEN 'left_only' WHEN lo > 0 THEN 'right_only'
+                   WHEN lo < 0 AND hi > 0 THEN 'both_sides' ELSE 'center_mixed' END kind, COUNT(*) stories
+       FROM st GROUP BY kind`
+    ),
+    q(
+      `SELECT CASE WHEN ${SV} < 0 THEN 'esquerda' WHEN ${SV} > 0 THEN 'direita' ELSE 'centro' END side, w.value word, COUNT(*) n
+       FROM articles, json_each(articles.loaded_words) w
+       WHERE articles.subjectivity > 0 GROUP BY side, word ORDER BY n DESC LIMIT 120`
+    ),
+  ]);
+
+  // Divergência de pauta: distância (variação total, 0–1) entre o mix de editorias do veículo e o da mídia como um todo
+  const global: Record<string, number> = {};
+  const perSource: Record<string, Record<string, number>> = {};
+  for (const r of sourceCats) {
+    const c = r.category ?? "outros";
+    global[c] = (global[c] ?? 0) + r.n;
+    (perSource[r.source_id] ??= {})[c] = r.n;
+  }
+  const gTotal = Object.values(global).reduce((a, b) => a + b, 0) || 1;
+  const leanBy = Object.fromEntries((lean as { source_id: string }[]).map((r) => [r.source_id, r]));
+  const sources = (bySource as Record<string, any>[]).map((s) => {
+    const cats = perSource[s.source_id] ?? {};
+    const sTotal = Object.values(cats).reduce((a, b) => a + b, 0) || 1;
+    const keys = new Set([...Object.keys(global), ...Object.keys(cats)]);
+    let tv = 0;
+    for (const k of keys) tv += Math.abs((cats[k] ?? 0) / sTotal - (global[k] ?? 0) / gTotal);
+    return { ...s, ...leanBy[s.source_id], agenda_divergence: tv / 2, categories: cats };
+  });
+
+  return {
+    computed_at: new Date().toISOString(),
+    totals: totals[0],
+    by_spectrum: bySpectrum,
+    coverage,
+    categories: global,
+    sources,
+    loaded_words: words,
+  };
+}
+
+// GET /prisma/api/stats — estatísticas agregadas de todo o acervo (cache de 3h no meta)
+async function stats(env: Env): Promise<Response> {
+  const cached = await env.DB.prepare("SELECT value FROM meta WHERE key = 'stats'").first<string>("value");
+  if (cached) {
+    const parsed = JSON.parse(cached);
+    if (Date.now() - Date.parse(parsed.computed_at) < STATS_TTL_MS) return json(parsed);
+  }
+  const fresh = await computeStats(env);
+  await env.DB.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('stats', ?1)").bind(JSON.stringify(fresh)).run();
+  return json(fresh);
 }
 
 // GET /prisma/api/stories?limit=60&before=<latest_pub>&category=<cat>
@@ -125,14 +207,15 @@ async function listStories(url: URL, env: Env): Promise<Response> {
     .bind(before, category, limit)
     .all<{ latest_pub: string; data: string }>();
 
-  const stories = results.map((r) => JSON.parse(r.data));
+  // Monta o JSON por concatenação: `data` já é JSON, e parsear ~1 MB estoura a CPU do plano grátis
   const next_before = results.length === limit ? results[results.length - 1].latest_pub : null;
-  const page: Record<string, unknown> = { count: stories.length, stories, next_before };
-  if (!before) {
-    const meta = await env.DB.prepare("SELECT value FROM meta WHERE key = 'feed'").first<string>("value");
-    Object.assign(page, meta ? JSON.parse(meta) : {});
-  }
-  return json(page);
+  const meta = before ? null : await env.DB.prepare("SELECT value FROM meta WHERE key = 'feed'").first<string>("value");
+  const head = JSON.stringify({ count: results.length, next_before }).slice(0, -1);
+  const tail = meta && meta.startsWith("{") && meta.length > 2 ? `,${meta.slice(1, -1)}` : "";
+  const body = `${head},"stories":[${results.map((r) => r.data).join(",")}]${tail}}`;
+  return new Response(body, {
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=30" },
+  });
 }
 
 export default {
@@ -146,6 +229,7 @@ export default {
     if (url.pathname === "/prisma") return Response.redirect(`${url.origin}/prisma/`, 301);
     if (url.pathname === "/prisma/api/ingest" && request.method === "POST") return ingest(request, env);
     if (url.pathname === "/prisma/api/stories") return listStories(url, env);
+    if (url.pathname === "/prisma/api/stats") return stats(env);
     const path = url.pathname.startsWith("/prisma/") ? url.pathname : `/prisma${url.pathname}`;
     return fetch(ORIGIN + path + url.search, {
       method: request.method,

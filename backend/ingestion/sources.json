@@ -632,8 +632,8 @@
   {
     "id": "timesofisrael",
     "name": "The Times of Israel",
-    "url": "https://www.timesofisrael.com/feed/",
-    "rss": "https://www.timesofisrael.com/feed/",
+    "url": "https://news.google.com/rss/search?q=site:timesofisrael.com&hl=en-US&gl=US&ceid=US:en",
+    "rss": "https://news.google.com/rss/search?q=site:timesofisrael.com&hl=en-US&gl=US&ceid=US:en",
     "category": "mundo",
     "spectrum": "centro-direita",
     "spectrum_label": "Centro-Direita / Internacional Oriente Médio",

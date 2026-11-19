@@ -1,4 +1,4 @@
-import { BarChart3, Globe, Radio, TrendingUp } from "lucide-react";
+import { BarChart3, Globe, Moon, Radio, Sun, TrendingUp } from "lucide-react";
 import { cn } from "../utils/cn";
 import { TICKER, type TickerItem } from "../data/news";
 import { IBookmark, ICompare, INewspaper, ISearch } from "./icons";
@@ -21,12 +21,16 @@ export function TopBar({
   onSearch,
   onSaved,
   savedCount,
+  darkMode = false,
+  onToggleTheme,
 }: {
   view: NavView;
   onNav: (v: NavView) => void;
   onSearch: () => void;
   onSaved: () => void;
   savedCount: number;
+  darkMode?: boolean;
+  onToggleTheme?: () => void;
 }) {
   return (
     <header className="glass sticky top-0 z-40 border-b border-rule">
@@ -72,6 +76,16 @@ export function TopBar({
         </nav>
 
         <div className="flex shrink-0 items-center gap-0.5">
+          {onToggleTheme && (
+            <button
+              onClick={onToggleTheme}
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-ink2 transition-colors hover:bg-ink/5 hover:text-ink cursor-pointer"
+              aria-label={darkMode ? "Ativar modo claro (papel)" : "Ativar modo noturno"}
+              title={darkMode ? "Modo claro" : "Modo noturno"}
+            >
+              {darkMode ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+            </button>
+          )}
           <button
             onClick={onSearch}
             className="flex h-11 w-11 items-center justify-center rounded-lg text-ink2 transition-colors hover:bg-ink/5 hover:text-ink"

@@ -39,6 +39,24 @@ export default function App() {
   const [savedOpen, setSavedOpen] = useState(false);
   const [saved, setSaved] = useState<string[]>(() => loadLS<string[]>("fc-saved", []));
   const [fontStep, setFontStep] = useState<number>(() => loadLS<number>("fc-font", 1));
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("prisma-theme") === "dark";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", darkMode);
+    try {
+      localStorage.setItem("prisma-theme", darkMode ? "dark" : "light");
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", darkMode ? "#121110" : "#171410");
+    } catch {
+      /* ignore */
+    }
+  }, [darkMode]);
 
   /* PWA Install hook */
   const { isInstallable, isInstalled, triggerInstall } = usePWAInstall();
@@ -393,6 +411,8 @@ export default function App() {
         onSearch={() => setSearchOpen(true)}
         onSaved={() => setSavedOpen(true)}
         savedCount={saved.length}
+        darkMode={darkMode}
+        onToggleTheme={() => setDarkMode((d) => !d)}
       />
 
       {/* Banner de instalação PWA */}

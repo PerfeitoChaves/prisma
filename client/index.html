@@ -40,12 +40,20 @@
       html {
         background: #f6f2ea;
       }
+      html.dark {
+        background: #121110;
+      }
     </style>
     <script>
+      try {
+        if (localStorage.getItem('prisma-theme') === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
       // Registro do Service Worker do PWA com atualização imediata
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js?v=2')
+          navigator.serviceWorker.register('./sw.js?v=3')
             .then((reg) => {
               console.log('[PRISMA PWA] Ativo:', reg.scope);
               reg.update();

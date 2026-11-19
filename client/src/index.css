@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
@@ -30,6 +31,65 @@
   --color-bias-c: #8e887c;
   --color-bias-cr: #6c8ebf;
   --color-bias-r: #2b50aa;
+}
+
+/* ---------- Modo Noturno Editorial (html.dark) ---------- */
+html.dark {
+  color-scheme: dark;
+  --color-paper: #121110;
+  --color-paper-deep: #1e1c19;
+  --color-paper2: #1b1916;
+  --color-cream: #221f1b;
+  --color-ink: #efe9de;
+  --color-ink-soft: #c4bbb0;
+  --color-ink-faint: #8e867a;
+  --color-ink2: #c4bbb0;
+  --color-ink3: #8e867a;
+  --color-line: #302c26;
+  --color-line-dark: #efe9de;
+  --color-rule: #302c26;
+  --color-signal: #e5534b;
+  --color-press: #e5534b;
+  --color-highlight: #d9a441;
+  --color-marker: #c99232;
+  --color-leaf: #4caf50;
+  --color-inkblue: #6b93e0;
+}
+
+html.dark body {
+  background-image: radial-gradient(
+      circle at 1px 1px,
+      rgba(239, 233, 222, 0.05) 1px,
+      transparent 0
+    );
+}
+
+html.dark .glass {
+  background: rgba(20, 18, 16, 0.86);
+}
+
+html.dark .noise::after {
+  opacity: 0.03;
+  mix-blend-mode: screen;
+}
+
+html.dark .marker {
+  background-image: linear-gradient(
+    100deg,
+    rgba(217, 164, 65, 0) 0.5%,
+    rgba(217, 164, 65, 0.34) 2.5%,
+    rgba(217, 164, 65, 0.28) 96%,
+    rgba(217, 164, 65, 0) 99.5%
+  );
+}
+
+html.dark ::selection {
+  background: #d9a441;
+  color: #121110;
+}
+
+html.dark :focus-visible {
+  outline-color: #efe9de;
 }
 
 /* Regra dupla clássica de jornal PRISMA */

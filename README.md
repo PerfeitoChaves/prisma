@@ -1,85 +1,105 @@
 # 📐 PRISMA — A Mesma História, Todos os Ângulos
 
-O **PRISMA** (antigo *Fatos Cruzados*) é uma plataforma jornalística pessoal, sem anúncios e sem assinaturas, desenvolvida para combater o viés ideológico e o sensacionalismo midiático. O sistema agrega notícias em tempo real de **62 veículos do Brasil e do Mundo**, agrupa matérias sobre o mesmo acontecimento (clustering), analisa enquadramentos editoriais e expõe o consenso factual lado a lado.
+O **PRISMA** (antigo *Fatos Cruzados*) é uma plataforma jornalística pessoal, sem anúncios, sem assinaturas e **100% operada em planos gratuitos** (GitHub Actions + Cloudflare Workers & D1 + GitHub Pages). O sistema agrega notícias em tempo real de **101 veículos do Brasil e do Mundo** (incluindo 15 periódicos científicos e servidores de preprints), agrupa matérias sobre o mesmo acontecimento (*cross-category clustering* com `AgglomerativeClustering`), analisa enquadramentos editoriais e expõe o consenso factual lado a lado.
 
 ---
 
 ## ✨ Funcionalidades Principais
 
-1. **⚡ Giro Ultra-Rápido em 2 Linhas**:
-   - Resumos objetivos focados em fatos centrais, percentuais e placares para leitura móvel em menos de 1 minuto.
+1. **⚡ Giro Ultra-Rápido em 2 Linhas & Modo Noturno**:
+   - Resumos objetivos focados em fatos centrais, percentuais e placares, com ordenação cronológica real e alternância entre tema **Papel Claro** e **Jornal Noturno**.
+   - Fita de cotações reais no topo (**Dólar, Euro, Bitcoin, Selic, Ibovespa e Petróleo WTI**) coletadas em APIs públicas gratuitas.
 
-2. **📺 Central Multimídia Ao Vivo (Lives & Rádios)**:
-   - 6 canais de TV de notícias (BandNews, CNN Brasil, Record News, Jovem Pan News, TV Brasil, SBT News).
+2. **🔍 Comparador Editorial & Síntese Multi-Fonte**:
+   - Agrupamento *cross-category* (unindo matérias de diferentes editorias sobre o mesmo fato) e clustering dedicado para **Ciência & Papers**.
+   - Síntese neutra com suporte opcional a **Gemini Free Tier (`gemini-2.5-flash`)**, **Groq Free Tier (`llama-3.3-70b-versatile`)** ou **Ollama local**, com fallback determinístico gratuito.
+   - Botão de compartilhamento direto por link (`#comparador?storyId=...`) e Web Share API no celular.
+
+3. **📊 Observatório de Viés & Saúde dos Feeds**:
+   - Estatísticas históricas sobre todo o acervo no D1: subjetividade, sensacionalismo, pontos cegos por espectro, *viés de agenda medido* e *divergência de pauta*.
+   - Monitoramento em tempo real da saúde das 101 fontes RSS no último ciclo de coleta.
+
+4. **📺 Central Multimídia Ao Vivo (Lives & Rádios)**:
+   - 6 canais de TV de notícias (BandNews, CNN Brasil, Record News, Jovem Pan News, TV Brasil, SBT News) com resolução dinâmica de lives do YouTube.
    - 7 rádios all-news (CBN SP/RJ, BandNews FM, Jovem Pan FM, Rádio Gaúcha, Bandeirantes, Eldorado).
-   - **Mini-Player Flutuante Persistente (PiP)** que continua tocando sem interrupção enquanto você navega pelos feeds.
+   - **Mini-Player Flutuante Persistente (PiP)** contínuo durante a navegação.
 
-3. **⚡ Radar de Tendências do X (Twitter)**:
-   - Monitoramento em tempo real de hashtags e termos mais comentados no Brasil com badges de volume.
-   - Botão **"Cruzar com Notícias"**: pesquisa algorítmica instantânea correlacionando a pauta com matérias da imprensa.
+5. **⚡ Radar de Tendências do X & Mapa de Tensões Geopolíticas**:
+   - Tendências brasileiras coletadas automaticamente e cruzadas com o acervo editorial via busca direta no D1 (`/prisma/api/search`).
+   - Visualização geopolítica interativa com blocos de cobertura (`west`, `east`, `global_south`).
 
-4. **🎛️ Filtros Avançados e Ordenação Editorial**:
-   - Ordenação rápida: *Mais Recentes*, *Maior Divergência*, *Mais Repercutidas* e *Consensuais*.
-   - Filtro de Espectro Político e Pontos Cegos (identifica o que só a esquerda ou só a direita está noticiando).
-   - Tags temáticas dinâmicas e clicáveis (#STF, #Dólar, #Copom, #IA, etc.).
+6. **📰 101 Veículos Monitorados (8 Espectros) & Feed RSS Próprio**:
+   - 86 veículos jornalísticos nacionais e internacionais (com tradução assíncrona gratuita para português) + 15 fontes de **Ciência & Papers** (Nature, Scientific American, Quanta, NASA, arXiv, bioRxiv, medRxiv, Pesquisa FAPESP, Jornal da USP, etc.).
+   - Feed RSS 2.0 próprio disponível em `/prisma/feed.xml` e `/prisma/api/rss`.
 
-5. **🔍 Busca Sob Demanda em Tempo Real**:
-   - Pesquise por qualquer assunto (ex: `python`, `eleições`, `spacex`); o sistema coleta, sanitiza, agrupa e gera a análise de espectro em menos de 2 segundos.
-
-6. **📰 62 Veículos Monitorados (7 Espectros)**:
-   - Fontes nacionais e agências internacionais traduzidas (Reuters, AP, BBC, DW, Nexo, Poder360, G1, Folha, Estadão, etc.).
-
-7. **📱 100% Mobile-First & GitHub Pages**:
-   - Menu inferior ergonômico (*Thumb Navigation*).
-   - Pacote `frontend/index.html` autossuficiente em arquivo único (`singlefile`), pronto para hospedar no GitHub Pages.
+7. **📱 PWA Mobile-First com Suporte Offline**:
+   - Bundle `index.html` otimizado (~925 KB / ~257 KB gzip) com Service Worker v3 cacheando navegação e respostas da API (`/prisma/api/*`) para leitura offline.
 
 ---
 
-## 🚀 Como Executar
+## 🏗️ Arquitetura 100% Gratuita
 
-### Forma Rápida (Script de Inicialização)
-Basta rodar no terminal:
+| Camada | Tecnologia | Papel |
+| :--- | :--- | :--- |
+| **Coleta & NLP** | GitHub Actions (`update-news.yml`) | Roda testes (`backend/tests`), coleta 101 RSS, agrupa via TF-IDF + `AgglomerativeClustering`, sintetiza e envia em lotes para o D1. |
+| **API & Edge** | Cloudflare Workers + KV + D1 (`worker/index.ts`) | Monitora novidades nos feeds RSS, dispara o workflow sob demanda, serve `/api/stories`, `/api/search`, `/api/stats`, `/api/trends`, `/api/live/channels`, `/feed.xml` e faz retenção automática (120 dias). |
+| **Frontend** | React 19 + Tailwind 4 + Vite (`client/` → `docs/`) | Interface estática hospedada gratuitamente no GitHub Pages e servida sob `pchaves.org/prisma/`. |
+
+---
+
+## 🚀 Como Executar Localmente
+
+### Forma Rápida (Linux / macOS)
 ```bash
 ./run.sh
 ```
-O script criará o ambiente virtual `.venv`, instalará as dependências e abrirá a aplicação em:
-👉 **`http://localhost:8000`**
-
----
 
 ### Execução Manual
 ```bash
 cd /caminho/para/prisma
-
-# Ativar ambiente virtual
-source .venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate  # no Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 
 # Coletar notícias e agrupar
 python3 -m backend.ingestion.collector
 python3 -c "from backend.analysis.clustering import run_clustering; run_clustering()"
 
-# Iniciar o servidor
+# Iniciar o servidor FastAPI em http://localhost:8000
 python3 -m backend.main
+```
+
+### Build do Frontend & Deploy do Worker
+```bash
+# Compilar frontend (gera frontend/ e copia para docs/)
+npm --prefix client ci
+npm --prefix client run build
+
+# Publicar Cloudflare Worker (requer login gratuito)
+npx -y wrangler login
+npx -y wrangler deploy
 ```
 
 ---
 
 ## ⚙️ Personalização de Fontes
 
-Você pode adicionar novos jornais ou ajustar as classificações de espectro editorial editando o arquivo:
-`backend/ingestion/sources.json`
+Edite `backend/ingestion/sources.json` para adicionar ou atualizar veículos. Exemplo:
 
-Exemplo de fonte cadastrada:
 ```json
 {
   "id": "meu_jornal",
   "name": "Nome do Jornal",
   "url": "https://url-do-feed-rss.xml",
+  "rss": "https://url-do-feed-rss.xml",
   "category": "brasil",
-  "spectrum": "center",
+  "spectrum": "centro",
   "spectrum_label": "Centro / Factual",
+  "spectrum_code": "center",
   "country": "BR",
-  "language": "pt"
+  "language": "pt",
+  "geopolitical_bloc": "global_south",
+  "geopolitical_bloc_label": "Sul Global & Neutros"
 }
 ```
 
@@ -87,8 +107,7 @@ Exemplo de fonte cadastrada:
 
 ## 🧪 Testes Automatizados
 
-Para rodar os testes da suíte:
 ```bash
-source .venv/bin/activate
-python3 -m unittest discover backend/tests
+PYTHONPATH=. python3 -m unittest discover -s backend/tests -v
 ```
+Os testes também são executados automaticamente no GitHub Actions antes de cada ciclo de atualização.

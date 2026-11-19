@@ -1,5 +1,5 @@
 // PRISMA Service Worker — Cache inteligente & Suporte Offline
-const CACHE_NAME = 'prisma-pwa-v2';
+const CACHE_NAME = 'prisma-pwa-v3';
 
 const APP_SHELL = [
   './',
@@ -47,9 +47,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Não cachear streams contínuos de rádio ou vídeo
+  // Não cachear streams contínuos de rádio ou vídeo (preserva /api/live/channels JSON)
   if (
-    url.pathname.includes('/live') ||
+    (!url.pathname.includes('/api/') && url.pathname.includes('/live')) ||
     url.pathname.endsWith('.m3u8') ||
     url.pathname.endsWith('.ts') ||
     url.pathname.endsWith('.aac') ||
@@ -75,8 +75,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Requisições para API (/api/): Network-first com fallback para cache se offline
-  if (url.pathname.startsWith('/api/')) {
+  // Requisições para API (/api/ ou /prisma/api/): Network-first com fallback para cache se offline
+  if (url.pathname.includes('/api/')) {
     event.respondWith(
       fetch(req)
         .then((networkRes) => {

@@ -237,7 +237,7 @@ export default function Reader({
               title="Ponto cego comum"
               sub="o que nenhuma redação apurou"
             />
-            <div className="mt-5 rounded-md border-l-4 border-inkblue bg-[#edf1f8] p-5">
+            <div className="mt-5 rounded-md border-l-4 border-inkblue bg-[#edf1f8] p-5 dark:bg-inkblue/15">
               <p className="text-[0.95em] leading-relaxed text-ink">{story.blindSpot}</p>
               <p className="mt-3.5 text-[0.66em] font-bold uppercase tracking-[0.18em] text-inkblue">
                 0 de {story.coverage.length} veículos trataram desse ponto

@@ -3,7 +3,7 @@ import { cn } from "../utils/cn";
 import { SPECTRUM_ZONES, outletById, spectrumInfo, themeLabel, type Story } from "../data/news";
 import { CoverageCard } from "./Comparator";
 import { IArrowLeft, IBolt, IBookmark, ICompare, IEye, ITarget } from "./icons";
-import { markNumbers, prefersReducedMotion } from "./ui";
+import { AiBadge, ShareButton, markNumbers, prefersReducedMotion } from "./ui";
 
 const SCALES = [0.95, 1.05, 1.15, 1.25];
 
@@ -110,22 +110,30 @@ export default function Reader({
           >
             <IBookmark className="h-5 w-5" filled={isSaved} />
           </button>
+          <ShareButton
+            storyId={story.id}
+            title={story.title}
+            className="rounded-lg border-0 hover:bg-ink/5"
+          />
         </div>
       </header>
 
       {/* conteúdo rolagem */}
       <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto overscroll-contain">
         <article className="mx-auto max-w-[760px] px-5 py-8 md:py-10" style={{ fontSize: `${16 * scale}px` }}>
-          <p className="text-[0.66em] font-bold uppercase tracking-[0.22em] text-press">
-            Análise imparcial · {themeLabel(story.theme)}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[0.66em] font-bold uppercase tracking-[0.22em] text-press">
+              Análise imparcial · {themeLabel(story.theme)}
+            </p>
+            {story.isAiGenerated && <AiBadge />}
+          </div>
 
           <h1 className="mt-3 font-serif text-[1.52em] font-bold leading-[1.14] tracking-[-0.01em] sm:text-[1.72em]">
             {markNumbers(story.title)}
           </h1>
 
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.82em] font-medium text-ink3">
-            <span>hoje · {story.time}</span>
+            <span>{story.time}</span>
             <span>{story.readTime} min de leitura</span>
             <span>
               {story.coverage.length} veículos · {story.coverage.length} trechos verbatim

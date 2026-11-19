@@ -74,6 +74,31 @@ const json = (body: unknown, status = 200) =>
     headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=30" },
   });
 
+const RETENTION_DAYS = 120; // mantém 4 meses de acervo; limpa em pequenos lotes 1x/dia para manter o D1 grátis leve (< 5 GB)
+const PRUNE_INTERVAL_MS = 24 * 3600_000;
+
+async function pruneOldRecords(env: Env): Promise<number> {
+  try {
+    const lastPrune = await env.DB.prepare("SELECT value FROM meta WHERE key = 'last_prune'").first<string>("value");
+    const now = Date.now();
+    if (lastPrune && now - Number(lastPrune) < PRUNE_INTERVAL_MS) return 0;
+
+    const cutoff = new Date(now - RETENTION_DAYS * 86_400_000).toISOString();
+    const res = await env.DB.batch([
+      env.DB.prepare(
+        "DELETE FROM stories WHERE key IN (SELECT key FROM stories WHERE latest_pub < ?1 LIMIT 500)"
+      ).bind(cutoff),
+      env.DB.prepare(
+        "DELETE FROM articles WHERE id IN (SELECT id FROM articles WHERE published_at < ?1 LIMIT 500)"
+      ).bind(cutoff),
+      env.DB.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('last_prune', ?1)").bind(String(now)),
+    ]);
+    return (res[0].meta.changes ?? 0) + (res[1].meta.changes ?? 0);
+  } catch {
+    return 0;
+  }
+}
+
 // POST /prisma/api/ingest — chamado pelo GitHub Action com as pautas do ciclo
 async function ingest(request: Request, env: Env): Promise<Response> {
   if (request.headers.get("Authorization") !== `Bearer ${env.INGEST_TOKEN}`) return json({ error: "unauthorized" }, 401);
@@ -101,7 +126,8 @@ async function ingest(request: Request, env: Env): Promise<Response> {
   const res = await env.DB.batch(stmts);
   const n = body.stories.length;
   const written = res.slice(0, n).reduce((acc, r) => acc + (r.meta.changes ?? 0), 0);
-  return json({ received: n, written, articles: res[n].meta.changes ?? 0 });
+  const pruned = await pruneOldRecords(env);
+  return json({ received: n, written, articles: res[n].meta.changes ?? 0, pruned });
 }
 
 // Espectro editorial (rótulo do veículo) em escala numérica: -2 esquerda … +2 direita
@@ -184,16 +210,31 @@ async function computeStats(env: Env) {
   };
 }
 
-// GET /prisma/api/stats — estatísticas agregadas de todo o acervo (cache de 3h no meta)
+// GET /prisma/api/stats — estatísticas agregadas de todo o acervo (cache de 3h no meta) + saúde das fontes
 async function stats(env: Env): Promise<Response> {
-  const cached = await env.DB.prepare("SELECT value FROM meta WHERE key = 'stats'").first<string>("value");
-  if (cached) {
-    const parsed = JSON.parse(cached);
-    if (Date.now() - Date.parse(parsed.computed_at) < STATS_TTL_MS) return json(parsed);
+  const { results: metaRows } = await env.DB.prepare(
+    "SELECT key, value FROM meta WHERE key IN ('stats', 'feed')"
+  ).all<{ key: string; value: string }>();
+  const byKey = Object.fromEntries(metaRows.map((r) => [r.key, r.value]));
+
+  let source_health: unknown = undefined;
+  if (byKey.feed) {
+    try {
+      source_health = (JSON.parse(byKey.feed) as { source_health?: unknown }).source_health;
+    } catch {
+      source_health = undefined;
+    }
+  }
+
+  if (byKey.stats) {
+    const parsed = JSON.parse(byKey.stats);
+    if (Date.now() - Date.parse(parsed.computed_at) < STATS_TTL_MS) {
+      return json(source_health ? { ...parsed, source_health } : parsed);
+    }
   }
   const fresh = await computeStats(env);
   await env.DB.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('stats', ?1)").bind(JSON.stringify(fresh)).run();
-  return json(fresh);
+  return json(source_health ? { ...fresh, source_health } : fresh);
 }
 
 const CAT_COUNTS_TTL_MS = 30 * 60_000; // evita full scan de stories em cada abertura da capa (cota de 5M leituras/dia do D1 grátis)

@@ -12,6 +12,8 @@ class TestClustering(unittest.TestCase):
         self.assertNotIn("https", cleaned)
         self.assertNotIn("!", cleaned)
         self.assertIn("stf julga recurso", cleaned)
+        self.assertIn("atencao", cleaned)
+        self.assertIn("brasilia", cleaned)
 
     def test_pick_representative_headline(self):
         articles = [

@@ -14,7 +14,11 @@ def test_build_ingest_chave_estavel_e_hash_ignora_timestamps():
             {"id": "a1", "source_id": "folha", "published_at": "2026-10-01", "created_at": "x"},
         ],
     }
-    first = build_ingest({"stories": [story]})
+    first = build_ingest({
+        "stories": [story],
+        "ticker": [{"label": "DÓLAR", "value": "R$ 5,40", "dir": "down"}],
+        "source_health": {"total": 101, "ok": 95, "failing": 6, "failed_list": []},
+    })
     again = build_ingest({"stories": [{**story, "id": 99, "updated_at": "b",
                                        "articles": [{**a, "created_at": "y"} for a in story["articles"]]}]})
     s = first["stories"][0]
@@ -23,6 +27,9 @@ def test_build_ingest_chave_estavel_e_hash_ignora_timestamps():
     arts = json.loads(first["articles"])
     assert {a["story_key"] for a in arts} == {"a1"}
     assert json.loads(next(a for a in arts if a["id"] == "b2")["loaded_words"]) == ["golpe"]
+    meta = json.loads(first["meta"])
+    assert meta["ticker"][0]["label"] == "DÓLAR"
+    assert meta["source_health"]["ok"] == 95
 
 
 def test_generate_rss_feed_valido():

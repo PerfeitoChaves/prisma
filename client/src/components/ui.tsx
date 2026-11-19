@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Check, Share2, Sparkles } from "lucide-react";
 import { cn } from "../utils/cn";
 import { SPECTRUM_ZONES, outletById, spectrumInfo, type Outlet } from "../data/news";
 
@@ -258,3 +259,69 @@ export const isMac =
 export const kbdKey = isMac ? "⌘K" : "Ctrl K";
 
 export const outletOf = outletById;
+
+/* ---------- selo de síntese por IA gratuita ---------- */
+export function AiBadge({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded border border-signal/30 bg-signal/10 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-signal",
+        className
+      )}
+      title="Síntese multi-fonte refinada por IA factual"
+    >
+      <Sparkles className="h-2.5 w-2.5" />
+      Síntese IA
+    </span>
+  );
+}
+
+/* ---------- compartilhamento nativo / copiar link ---------- */
+export function ShareButton({
+  storyId,
+  title,
+  className,
+  compact = false,
+}: {
+  storyId: string;
+  title: string;
+  className?: string;
+  compact?: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const base = typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}` : "https://pchaves.org/prisma/";
+    const shareUrl = `${base}#comparador?storyId=${encodeURIComponent(storyId)}`;
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({ title: `PRISMA — ${title}`, text: title, url: shareUrl });
+        return;
+      }
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      }
+    } catch {
+      /* cancelado pelo usuário ou indisponível */
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleShare}
+      className={cn(
+        "inline-flex items-center justify-center gap-1 rounded border border-rule text-ink3 transition-colors hover:border-ink hover:text-ink cursor-pointer",
+        compact ? "h-9 w-9" : "h-11 w-11",
+        copied && "border-leaf text-leaf",
+        className
+      )}
+      aria-label={copied ? "Link copiado" : "Compartilhar pauta"}
+      title={copied ? "Link copiado!" : "Compartilhar pauta"}
+    >
+      {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+    </button>
+  );
+}

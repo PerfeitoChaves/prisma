@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
-import { COVER_STORY, STORIES, type Story } from "./data/news";
+import { COVER_STORY, STORIES, TICKER, type Story, type TickerItem } from "./data/news";
 import { DEFAULT_MEDIA_ITEM, RADIO_STATIONS, TV_CHANNELS, type LiveMediaItem } from "./data/media";
 import { mapApiStoryToStory, mapCategoryToTheme, type ApiStory } from "./utils/storyMapper";
 import { Dock, TopBar } from "./components/Chrome";
@@ -21,6 +21,7 @@ export type View = "capa" | "comparador" | "tensoes" | "radar" | "aovivo" | (str
 
 export default function App() {
   const [stories, setStories] = useState<Story[]>(STORIES);
+  const [tickerItems, setTickerItems] = useState<TickerItem[]>(TICKER);
   const [loading, setLoading] = useState(true);
   // Cursor de paginação da API do D1 (null = não há mais pautas)
   const [nextBefore, setNextBefore] = useState<string | null>(null);
@@ -132,6 +133,10 @@ export default function App() {
           }
         } else if (data && Array.isArray(data.live_channels) && data.live_channels.length > 0 && mounted) {
           setTvChannels(data.live_channels);
+        }
+
+        if (data && Array.isArray(data.ticker) && data.ticker.length > 0 && mounted) {
+          setTickerItems(data.ticker);
         }
 
         if (data && data.stories && Array.isArray(data.stories) && data.stories.length > 0) {
@@ -402,6 +407,7 @@ export default function App() {
         {view === "capa" ? (
           <CoverPage
             stories={stories}
+            ticker={tickerItems}
             loading={loading}
             totalStories={feedTotals.stories}
             sourcesCount={feedTotals.sources}

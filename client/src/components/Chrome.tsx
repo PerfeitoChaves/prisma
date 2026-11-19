@@ -1,6 +1,6 @@
 import { BarChart3, Globe, Radio, TrendingUp } from "lucide-react";
 import { cn } from "../utils/cn";
-import { TICKER } from "../data/news";
+import { TICKER, type TickerItem } from "../data/news";
 import { IBookmark, ICompare, INewspaper, ISearch } from "./icons";
 
 export function todayLong(): string {
@@ -186,11 +186,12 @@ export function Dock({ view, onNav }: { view: NavView; onNav: (v: NavView) => vo
 }
 
 /* ---------- fita de cotações ---------- */
-export function Ticker() {
+export function Ticker({ items }: { items?: TickerItem[] }) {
+  const list = items && items.length > 0 ? items : TICKER;
   return (
     <div className="relative overflow-hidden border-b border-rule bg-paper2/70">
       <div className="animate-marquee flex w-max items-center whitespace-nowrap py-2">
-        {[...TICKER, ...TICKER].map((t, i) => (
+        {[...list, ...list].map((t, i) => (
           <span key={i} className="mx-4.5 flex items-baseline gap-1.5 text-[11px]">
             <span className="font-bold tracking-[0.14em] text-ink3">{t.label}</span>
             <span className="font-semibold text-ink">{t.value}</span>

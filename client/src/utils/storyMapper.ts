@@ -38,6 +38,7 @@ export interface ApiStory {
   consensus_facts?: string[] | string;
   divergent_points?: any;
   framing_contrast?: any;
+  is_ai_generated?: number | boolean;
   articles?: ApiArticle[];
 }
 
@@ -58,14 +59,45 @@ function cleanText(text?: string | null): string {
     .trim();
 }
 
+function parseIsoMs(isoString?: string): number {
+  if (!isoString) return 0;
+  // Normaliza ISO sem fuso (salvo em UTC pelo backend) adicionando Z
+  const hasTz = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(isoString);
+  const ms = Date.parse(hasTz ? isoString : `${isoString}Z`);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
 function formatTime(isoString?: string): string {
-  if (!isoString) return "hoje";
+  const ms = parseIsoMs(isoString);
+  if (!ms) return "hoje";
   try {
-    const d = new Date(isoString);
-    if (isNaN(d.getTime())) return "hoje";
+    const d = new Date(ms);
+    const now = new Date();
+    const diffMin = Math.floor((now.getTime() - ms) / 60_000);
     const h = String(d.getHours()).padStart(2, "0");
     const m = String(d.getMinutes()).padStart(2, "0");
-    return `${h}:${m}`;
+    const hhmm = `${h}:${m}`;
+
+    const sameDay =
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate();
+    if (sameDay) {
+      if (diffMin >= 1 && diffMin < 60) return `há ${diffMin} min`;
+      return hhmm;
+    }
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday =
+      d.getFullYear() === yesterday.getFullYear() &&
+      d.getMonth() === yesterday.getMonth() &&
+      d.getDate() === yesterday.getDate();
+    if (isYesterday) return `ontem · ${hhmm}`;
+
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${dd}/${mm} · ${hhmm}`;
   } catch {
     return "hoje";
   }
@@ -248,6 +280,17 @@ export function mapApiStoryToStory(apiStory: ApiStory): Story {
   const kicker = `${apiStory.topic || (theme.charAt(0).toUpperCase() + theme.slice(1))} · ${articles.length || 1} fontes`;
   const stamp = `${apiStory.source_count || articles.length || 1} veículos confirmam o fato`;
 
+  const latestIso =
+    articles.reduce<string | undefined>((best, a) => {
+      if (!a.published_at) return best;
+      if (!best) return a.published_at;
+      return parseIsoMs(a.published_at) > parseIsoMs(best) ? a.published_at : best;
+    }, undefined) ||
+    apiStory.updated_at ||
+    apiStory.created_at;
+
+  const publishedAtMs = parseIsoMs(latestIso);
+
   return {
     id,
     theme,
@@ -256,7 +299,9 @@ export function mapApiStoryToStory(apiStory: ApiStory): Story {
     summary,
     briefSummary,
     readTime: Math.max(3, Math.min(10, Math.round((articles.length * 2) + 2))),
-    time: formatTime(apiStory.updated_at || apiStory.created_at || articles[0]?.published_at),
+    time: formatTime(latestIso),
+    publishedAtMs: publishedAtMs || undefined,
+    isAiGenerated: Boolean(apiStory.is_ai_generated),
     stamp,
     consensus,
     divergences,

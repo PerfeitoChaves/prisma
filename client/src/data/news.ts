@@ -282,6 +282,10 @@ export interface Story {
   briefSummary?: string;
   readTime: number;
   time: string;
+  /** Timestamp real em milissegundos (epoch) para ordenação cronológica exata */
+  publishedAtMs?: number;
+  /** Indica se a síntese neutra foi gerada por modelo de IA gratuito */
+  isAiGenerated?: boolean;
   /** selo de verificação da manchete consensual */
   stamp: string;
   image?: string;
@@ -975,15 +979,15 @@ export const STORIES: Story[] = [
 
 export const COVER_STORY = STORIES.find((s) => s.cover) ?? STORIES[0];
 
-/** fita de cotações da capa */
-export const TICKER: { label: string; value: string; dir: "up" | "down" | "flat" }[] = [
-  { label: "SELEC", value: "14,00% a.a.", dir: "down" },
-  { label: "IPCA AGO", value: "0,21%", dir: "flat" },
+export type TickerItem = { label: string; value: string; dir: "up" | "down" | "flat" };
+
+/** fita de cotações da capa (fallback caso a API esteja offline) */
+export const TICKER: TickerItem[] = [
+  { label: "SELIC", value: "14,25% a.a.", dir: "flat" },
+  { label: "IPCA", value: "0,48%", dir: "flat" },
   { label: "DÓLAR", value: "R$ 5,42", dir: "up" },
   { label: "IBOV", value: "132.480", dir: "down" },
-  { label: "EUROS 5A", value: "R$ 5,98", dir: "up" },
-  { label: "WTI", value: "US$ 63,10", dir: "up" },
+  { label: "EURO", value: "R$ 5,98", dir: "up" },
+  { label: "WTI", value: "US$ 68,10", dir: "up" },
   { label: "BTC", value: "R$ 352 mil", dir: "up" },
-  { label: "SWAP 2029", value: "12,90%", dir: "down" },
-  { label: "BCH 2030", value: "128,4 pts", dir: "flat" },
 ];

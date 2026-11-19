@@ -20,6 +20,14 @@ type SourceStat = {
   agenda_divergence: number;
 };
 
+type SourceHealth = {
+  total: number;
+  ok: number;
+  failing: number;
+  failed_list?: { name: string; reason: string }[];
+  checked_at?: string;
+};
+
 type StatsPayload = {
   computed_at: string;
   totals: { articles: number; stories: number; sources: number; first: string; last: string };
@@ -27,6 +35,7 @@ type StatsPayload = {
   coverage: { kind: string; stories: number }[];
   sources: SourceStat[];
   loaded_words: { side: "esquerda" | "centro" | "direita"; word: string; n: number }[];
+  source_health?: SourceHealth;
 };
 
 const SPECTRA: { id: Spectrum; label: string; color: string; value: number }[] = [
@@ -175,6 +184,39 @@ export default function StatsView() {
           {new Date(data.computed_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}.
         </p>
       </div>
+
+      {/* 0. Saúde das fontes RSS no último ciclo */}
+      {data.source_health && data.source_health.total > 0 && (
+        <section className="mb-10">
+          <SectionTitle kicker="Monitoramento RSS" title="Saúde das fontes no último ciclo">
+            {data.source_health.ok} de {data.source_health.total} feeds responderam com matérias válidas (
+            {pct(data.source_health.ok / data.source_health.total)})
+            {data.source_health.checked_at
+              ? ` · verificado em ${new Date(data.source_health.checked_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
+              : ""}
+            .
+          </SectionTitle>
+          <Bar
+            value={data.source_health.ok}
+            max={data.source_health.total}
+            color="var(--color-leaf)"
+          />
+          {data.source_health.failing > 0 && data.source_health.failed_list && data.source_health.failed_list.length > 0 && (
+            <details className="mt-3 border border-rule bg-paper2/60 px-3 py-2 text-[12px]">
+              <summary className="cursor-pointer font-mono text-[11px] font-semibold text-ink2">
+                {data.source_health.failing} fonte(s) sem retorno no último ciclo (ver lista)
+              </summary>
+              <ul className="mt-2 grid gap-1 sm:grid-cols-2">
+                {data.source_health.failed_list.map((f) => (
+                  <li key={f.name} className="truncate font-mono text-[11px] text-ink3">
+                    <span className="font-semibold text-ink">{f.name}</span> — {f.reason}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </section>
+      )}
 
       {/* 1. Panorama por espectro */}
       <section className="mb-10">

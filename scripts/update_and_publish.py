@@ -15,6 +15,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
+import httpx
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
@@ -34,6 +35,105 @@ def _parse_words(v):
         return p if isinstance(p, list) else []
     except ValueError:
         return []
+
+
+def _fmt_br(val: float, decimals: int = 2) -> str:
+    return f"{val:,.{decimals}f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def _dir_from_delta(delta: float, eps: float = 0.01) -> str:
+    if delta > eps:
+        return "up"
+    if delta < -eps:
+        return "down"
+    return "flat"
+
+
+async def fetch_market_ticker() -> list:
+    """Coleta cotações reais em APIs públicas 100% gratuitas sem chave (AwesomeAPI, BCB SGS, Yahoo Finance)."""
+    items = []
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) prisma-ticker/1.0"}
+
+    async with httpx.AsyncClient(timeout=8.0, headers=headers, follow_redirects=True) as client:
+        # 1. Dólar, Euro e Bitcoin via AwesomeAPI (gratuita, sem chave)
+        try:
+            r = await client.get("https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,BTC-BRL")
+            if r.status_code == 200:
+                data = r.json()
+                if "USDBRL" in data:
+                    bid = float(data["USDBRL"]["bid"])
+                    pct = float(data["USDBRL"].get("pctChange", 0))
+                    items.append({"label": "DÓLAR", "value": f"R$ {_fmt_br(bid, 2)}", "dir": _dir_from_delta(pct, 0.05)})
+                if "EURBRL" in data:
+                    bid = float(data["EURBRL"]["bid"])
+                    pct = float(data["EURBRL"].get("pctChange", 0))
+                    items.append({"label": "EURO", "value": f"R$ {_fmt_br(bid, 2)}", "dir": _dir_from_delta(pct, 0.05)})
+                if "BTCBRL" in data:
+                    bid = float(data["BTCBRL"]["bid"])
+                    pct = float(data["BTCBRL"].get("pctChange", 0))
+                    val_str = f"R$ {_fmt_br(bid / 1000.0, 0)} mil" if bid >= 10000 else f"R$ {_fmt_br(bid, 0)}"
+                    items.append({"label": "BTC", "value": val_str, "dir": _dir_from_delta(pct, 0.2)})
+        except Exception as e:
+            print(f"[Ticker] AwesomeAPI indisponível: {e}")
+
+        # 2. Selic Meta (série 432) e IPCA mensal (série 433) via Banco Central do Brasil (oficial, gratuita)
+        for series_id, label, suffix in [(432, "SELIC", "% a.a."), (433, "IPCA", "%")]:
+            try:
+                r = await client.get(f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.{series_id}/dados/ultimos/2?formato=json")
+                if r.status_code == 200:
+                    rows = r.json()
+                    if isinstance(rows, list) and rows:
+                        last_val = float(str(rows[-1]["valor"]).replace(",", "."))
+                        prev_val = float(str(rows[-2]["valor"]).replace(",", ".")) if len(rows) >= 2 else last_val
+                        items.append({
+                            "label": label,
+                            "value": f"{_fmt_br(last_val, 2)}{suffix}",
+                            "dir": _dir_from_delta(last_val - prev_val, 0.001),
+                        })
+            except Exception as e:
+                print(f"[Ticker] BCB série {series_id} indisponível: {e}")
+
+        # 3. Ibovespa (^BVSP) e Petróleo WTI (CL=F) via Yahoo Finance JSON público
+        for symbol, label, prefix, dec in [("%5EBVSP", "IBOV", "", 0), ("CL%3DF", "WTI", "US$ ", 2)]:
+            try:
+                r = await client.get(f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=2d")
+                if r.status_code == 200:
+                    meta_y = r.json().get("chart", {}).get("result", [{}])[0].get("meta", {})
+                    price = meta_y.get("regularMarketPrice")
+                    prev = meta_y.get("chartPreviousClose") or meta_y.get("previousClose") or price
+                    if price is not None:
+                        p_num = float(price)
+                        delta = p_num - float(prev) if prev is not None else 0.0
+                        items.append({
+                            "label": label,
+                            "value": f"{prefix}{_fmt_br(p_num, dec)}",
+                            "dir": _dir_from_delta(delta, 0.01),
+                        })
+            except Exception as e:
+                print(f"[Ticker] Yahoo {label} indisponível: {e}")
+
+    return items
+
+
+def build_source_health(collector_res: dict, now_utc: datetime) -> dict:
+    """Resume saúde das fontes RSS coletadas no ciclo atual."""
+    details = collector_res.get("details") or {}
+    ok_count = 0
+    failed_list = []
+    for name, info in details.items():
+        if isinstance(info, dict) and info.get("collected", 0) > 0:
+            ok_count += 1
+        else:
+            reason = info.get("error") if isinstance(info, dict) and info.get("error") else "0 artigos"
+            failed_list.append({"name": name, "reason": str(reason)[:80]})
+    total = collector_res.get("sources_processed") or len(details)
+    return {
+        "total": total,
+        "ok": ok_count,
+        "failing": len(failed_list),
+        "failed_list": failed_list[:20],
+        "checked_at": now_utc.isoformat(),
+    }
 
 
 def build_ingest(payload: dict) -> dict:
@@ -89,6 +189,8 @@ def build_ingest(payload: dict) -> dict:
         "stats": light_stats,
         "live_channels": payload.get("live_channels"),
         "trends": payload.get("trends"),
+        "ticker": payload.get("ticker"),
+        "source_health": payload.get("source_health"),
         "updated_at": payload.get("updated_at"),
     }
     return {
@@ -128,6 +230,12 @@ async def main():
     trends = await build_trends_catalog()
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {len(trends)} tendências coletadas.")
 
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Coletando cotações de mercado (APIs gratuitas)...")
+    ticker = await fetch_market_ticker()
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] {len(ticker)} indicadores de mercado atualizados.")
+
+    source_health = build_source_health(collector_res, now_utc)
+
     payload = {
         "version": "1.0",
         "updated_at": now_utc.isoformat(),
@@ -137,6 +245,8 @@ async def main():
         "stats": stats,
         "live_channels": live_channels,
         "trends": trends,
+        "ticker": ticker,
+        "source_health": source_health,
     }
 
     # 5a. No GitHub Actions: envia as pautas para o D1 via Worker e encerra (sem commit, sem rebuild)

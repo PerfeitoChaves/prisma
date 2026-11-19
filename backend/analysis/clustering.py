@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from collections import Counter, defaultdict
 from typing import List, Dict, Any, Optional
 import numpy as np
@@ -32,6 +33,7 @@ STOPWORDS_PT = {
     "diz", "afirma", "segundo", "apontam", "mostra", "novo", "nova", "novos", "novas",
     "ano", "anos", "dia", "dias", "mes", "meses", "hoje", "ontem", "nesta", "neste",
     "mais", "menos", "muito", "pouco", "ja", "ainda", "agora", "sempre", "nunca",
+    "nao", "tambem", "contra", "pode", "podem", "voce", "todos", "todas", "feito",
     "noticia", "noticias", "jornal", "g1", "folha", "uol", "cnn", "estadao"
 }
 
@@ -51,8 +53,10 @@ COMBINED_STOPWORDS = list(STOPWORDS_PT.union(STOPWORDS_EN))
 
 def preprocess_text(text: str) -> str:
     text = text.lower()
-    # Remove urls and special chars
+    # Remove urls and accents (ensures Portuguese accented words match unaccented STOPWORDS_PT)
     text = re.sub(r'https?://\S+', '', text)
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
     text = re.sub(r'[^\w\s]', ' ', text)
     text = re.sub(r'\s+', ' ', text).strip()
     return text
@@ -106,7 +110,8 @@ def cluster_articles(
     if not articles:
         return {"total_stories": 0}
 
-    corpus = [f"{a['title']} {a.get('summary', '')}" for a in articles]
+    # Peso 2x para o título em relação ao resumo melhora precisão do agrupamento
+    corpus = [f"{a['title']} {a['title']} {a.get('summary', '')}" for a in articles]
     cleaned_corpus = [preprocess_text(text) for text in corpus]
 
     n = len(articles)

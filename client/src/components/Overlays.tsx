@@ -365,7 +365,7 @@ export function SavedDrawer({
                     {s.kicker}
                   </span>
                   <span className="shrink-0 text-[10.5px] font-medium text-ink3">
-                    hoje · {s.time}
+                    {s.time}
                   </span>
                 </div>
                 <h3 className="mt-2 font-serif text-[16.5px] font-bold leading-snug">{s.title}</h3>

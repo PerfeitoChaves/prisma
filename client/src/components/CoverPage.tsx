@@ -7,6 +7,7 @@ import {
   getStoryTags,
   type Story,
   type ThemeId,
+  type TickerItem,
 } from "../data/news";
 import { coverageVerdict, outletToBias } from "../utils/prismaCoverage";
 import {
@@ -25,10 +26,12 @@ import {
   ISearch,
 } from "./icons";
 import {
+  AiBadge,
   Kicker,
   Mark,
   Reveal,
   RevealWords,
+  ShareButton,
   VerifiedStamp,
   markNumbers,
 } from "./ui";
@@ -74,6 +77,9 @@ function sortStories(list: Story[], sortOption: SortOption): Story[] {
   switch (sortOption) {
     case "recentes":
       return shallow.sort((a, b) => {
+        const msA = a.publishedAtMs ?? 0;
+        const msB = b.publishedAtMs ?? 0;
+        if (msA !== msB) return msB - msA;
         const scoreA = parseTimeValue(a);
         const scoreB = parseTimeValue(b);
         if (scoreA !== scoreB) return scoreB - scoreA;
@@ -138,6 +144,7 @@ function filterByTag(list: Story[], tag: string | null): Story[] {
 
 export default function CoverPage({
   stories = STORIES,
+  ticker,
   loading = false,
   totalStories,
   sourcesCount,
@@ -152,6 +159,7 @@ export default function CoverPage({
   onSearchClick,
 }: {
   stories?: Story[];
+  ticker?: TickerItem[];
   loading?: boolean;
   totalStories?: number;
   sourcesCount?: number;
@@ -302,7 +310,7 @@ export default function CoverPage({
 
       {/* Fita de cotações e manchetes */}
       <div className="mt-4 md:mt-5">
-        <Ticker />
+        <Ticker items={ticker} />
       </div>
 
       {/* ── Termômetro do Espectro Editorial (PRISMA) ── */}
@@ -456,6 +464,7 @@ export default function CoverPage({
                           Manchete consensual
                         </span>
                         <VerdictChip story={featured} />
+                        {featured.isAiGenerated && <AiBadge />}
                         <VerifiedStamp text={featured.stamp} />
                         <span className="font-mono text-[10px] font-semibold text-ink3">
                           {featured.time}
@@ -558,6 +567,7 @@ export default function CoverPage({
                         >
                           <IBookmark className="h-4.5 w-4.5" filled={saved.includes(featured.id)} />
                         </button>
+                        <ShareButton storyId={featured.id} title={featured.title} className="rounded-md border-ink/25 text-ink2" />
                       </div>
                     </div>
 
@@ -675,6 +685,7 @@ function BriefCard({
             {story.kicker}
           </span>
           <VerdictChip story={story} />
+          {story.isAiGenerated && <AiBadge />}
         </div>
         <span className="font-mono text-[9.5px] font-medium text-ink3">
           {story.time}
@@ -787,6 +798,7 @@ function BriefCard({
           >
             <IBookmark className="h-4 w-4" filled={isSaved} />
           </button>
+          <ShareButton storyId={story.id} title={story.title} compact />
         </div>
       </div>
     </article>
@@ -818,9 +830,10 @@ function GridCard({
   return (
     <article className="group border-t-2 border-ink pt-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <Kicker>{s.kicker}</Kicker>
           <VerdictChip story={s} />
+          {s.isAiGenerated && <AiBadge />}
         </div>
         <span className="shrink-0 font-mono text-[10px] font-semibold text-ink3">
           {s.time}
@@ -904,7 +917,7 @@ function GridCard({
         </span>
       </div>
 
-      <div className="mt-3.5 grid grid-cols-[1fr_1fr_40px] gap-2 border-t border-rule pt-2.5">
+      <div className="mt-3.5 grid grid-cols-[1fr_1fr_40px_40px] gap-2 border-t border-rule pt-2.5">
         <button
           onClick={onCompare}
           className="flex h-10 items-center justify-center gap-1.5 rounded-md border border-rule text-[10px] font-bold uppercase tracking-[0.1em] text-ink2 transition-colors hover:border-ink hover:text-ink cursor-pointer"
@@ -927,6 +940,7 @@ function GridCard({
         >
           <IBookmark className="h-4 w-4" filled={isSaved} />
         </button>
+        <ShareButton storyId={s.id} title={s.title} className="h-10 w-10 rounded-md" />
       </div>
     </article>
   );

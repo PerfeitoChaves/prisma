@@ -196,6 +196,8 @@ async function stats(env: Env): Promise<Response> {
   return json(fresh);
 }
 
+const CAT_COUNTS_TTL_MS = 30 * 60_000; // evita full scan de stories em cada abertura da capa (cota de 5M leituras/dia do D1 grátis)
+
 // GET /prisma/api/stories?limit=60&before=<latest_pub>&category=<cat>
 async function listStories(url: URL, env: Env): Promise<Response> {
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 60, 1), 200);
@@ -211,14 +213,40 @@ async function listStories(url: URL, env: Env): Promise<Response> {
 
   // Monta o JSON por concatenação: `data` já é JSON, e parsear ~1 MB estoura a CPU do plano grátis
   const next_before = results.length === limit ? results[results.length - 1].latest_pub : null;
-  const meta = before ? null : await env.DB.prepare("SELECT value FROM meta WHERE key = 'feed'").first<string>("value");
-  // Contagem real por editoria (para os filtros da capa); só na primeira página
+  let meta: string | null = null;
   let total_stories: number | undefined;
   let category_counts: Record<string, number> | undefined;
+
   if (!before) {
-    const { results: cats } = await env.DB.prepare("SELECT category, COUNT(*) n FROM stories GROUP BY category").all<{ category: string | null; n: number }>();
-    category_counts = Object.fromEntries(cats.map((c) => [c.category ?? "brasil", c.n]));
-    total_stories = cats.reduce((acc, c) => acc + c.n, 0);
+    const { results: metaRows } = await env.DB.prepare(
+      "SELECT key, value FROM meta WHERE key IN ('feed', 'cat_counts')"
+    ).all<{ key: string; value: string }>();
+    const byKey = Object.fromEntries(metaRows.map((r) => [r.key, r.value]));
+    meta = byKey.feed ?? null;
+
+    let cachedCounts: { computed_at: number; total_stories: number; category_counts: Record<string, number> } | null = null;
+    if (byKey.cat_counts) {
+      try {
+        const parsed = JSON.parse(byKey.cat_counts);
+        if (parsed && Date.now() - Number(parsed.computed_at) < CAT_COUNTS_TTL_MS) {
+          cachedCounts = parsed;
+        }
+      } catch {
+        cachedCounts = null;
+      }
+    }
+
+    if (cachedCounts) {
+      total_stories = cachedCounts.total_stories;
+      category_counts = cachedCounts.category_counts;
+    } else {
+      const { results: cats } = await env.DB.prepare("SELECT category, COUNT(*) n FROM stories GROUP BY category").all<{ category: string | null; n: number }>();
+      category_counts = Object.fromEntries(cats.map((c) => [c.category ?? "brasil", c.n]));
+      total_stories = cats.reduce((acc, c) => acc + c.n, 0);
+      await env.DB.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('cat_counts', ?1)")
+        .bind(JSON.stringify({ computed_at: Date.now(), total_stories, category_counts }))
+        .run();
+    }
   }
   const head = JSON.stringify({ count: results.length, next_before, total_stories, category_counts, sources_count: sources.length }).slice(0, -1);
   const tail = meta && meta.startsWith("{") && meta.length > 2 ? `,${meta.slice(1, -1)}` : "";
@@ -228,13 +256,15 @@ async function listStories(url: URL, env: Env): Promise<Response> {
   });
 }
 
-// GET /prisma/api/search?q=<termo>
+// GET /prisma/api/search?q=<termo> — limita varredura às 1.000 pautas mais recentes (usa índice stories_pub e protege cota do D1 grátis)
 async function searchStories(url: URL, env: Env): Promise<Response> {
   const q = (url.searchParams.get("q") ?? "").trim();
   if (q.length < 2) return json({ query: q, count: 0, stories: [] });
   const pattern = `%${q.replace(/[%_\\]/g, "\\$&")}%`;
   const { results } = await env.DB.prepare(
-    `SELECT data FROM stories WHERE data LIKE ?1 ESCAPE '\\' ORDER BY latest_pub DESC LIMIT 30`
+    `SELECT data FROM (
+       SELECT latest_pub, data FROM stories ORDER BY latest_pub DESC LIMIT 1000
+     ) WHERE data LIKE ?1 ESCAPE '\\' ORDER BY latest_pub DESC LIMIT 30`
   )
     .bind(pattern)
     .all<{ data: string }>();

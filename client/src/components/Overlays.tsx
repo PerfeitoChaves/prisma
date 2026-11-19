@@ -48,7 +48,7 @@ export function SearchModal({
     if (!term || searchingLive) return;
     setSearchingLive(true);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(term)}&live=true`);
+      const res = await fetch(`./api/search?q=${encodeURIComponent(term)}&live=true`);
       if (res.ok) {
         const data = await res.json();
         if (data.stories && Array.isArray(data.stories) && data.stories.length > 0) {

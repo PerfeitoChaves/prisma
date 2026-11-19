@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && mkdir -p ../docs && cp -r ../frontend/* ../docs/",
+    "build": "vite build && node -e \"const fs=require('fs');fs.cpSync('../frontend','../docs',{recursive:true,force:true})\"",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -51,7 +51,7 @@ export default function RadarView({
     else setLoading(true);
 
     try {
-      const url = isManualRefresh ? "/api/trends?refresh=true" : "/api/trends";
+      const url = isManualRefresh ? "./api/trends?refresh=true" : "./api/trends";
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -128,7 +128,7 @@ export default function RadarView({
       // Chama busca em tempo real se online
       setCrossSearching(true);
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(topicClean)}&live=true`);
+        const res = await fetch(`./api/search?q=${encodeURIComponent(topicClean)}&live=true`);
         if (res.ok) {
           const data = await res.json();
           if (data.stories && Array.isArray(data.stories) && data.stories.length > 0) {

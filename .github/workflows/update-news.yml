@@ -34,6 +34,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: 🧪 Executar Testes Automatizados
+        run: |
+          python3 -m unittest discover -s backend/tests -t .
+          python3 -c "from backend.tests.test_ingest import test_build_ingest_chave_estavel_e_hash_ignora_timestamps, test_generate_rss_feed_valido; test_build_ingest_chave_estavel_e_hash_ignora_timestamps(); test_generate_rss_feed_valido()"
+
       - name: 🤖 Executar Coleta Multi-Fonte, Agrupamento e Síntese de Notícias
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

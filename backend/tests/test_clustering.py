@@ -1,5 +1,9 @@
 import unittest
-from backend.analysis.clustering import preprocess_text, pick_representative_headline
+from backend.analysis.clustering import (
+    _resolve_cluster_category,
+    pick_representative_headline,
+    preprocess_text,
+)
 
 class TestClustering(unittest.TestCase):
     def test_text_preprocessing(self):
@@ -24,6 +28,20 @@ class TestClustering(unittest.TestCase):
         ]
         chosen = pick_representative_headline(articles)
         self.assertEqual(chosen, "Câmara aprova proposta de emenda constitucional após acordo partidário")
+
+    def test_resolve_cluster_category_cross_category(self):
+        mixed_articles = [
+            {"category": "politica"},
+            {"category": "brasil"},
+            {"category": "economia"},
+        ]
+        resolved = _resolve_cluster_category(
+            "Banco Central eleva taxa Selic para conter inflação e dólar",
+            "Decisão do Copom impacta juros e mercado financeiro.",
+            mixed_articles,
+            default_category=None,
+        )
+        self.assertEqual(resolved, "economia")
 
 if __name__ == "__main__":
     unittest.main()

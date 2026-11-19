@@ -1,7 +1,7 @@
-import imgSelic from "../assets/img/cover-selic.jpg";
-import imgCongress from "../assets/img/congress.jpg";
-import imgChip from "../assets/img/chip.jpg";
-import imgStadium from "../assets/img/stadium.jpg";
+const imgSelic = "./images/cover-selic.jpg";
+const imgCongress = "./images/congress.jpg";
+const imgChip = "./images/chip.jpg";
+const imgStadium = "./images/stadium.jpg";
 
 /* ============================================================
    FATOS CRUZADOS — acervo pessoal de cobertura comparada

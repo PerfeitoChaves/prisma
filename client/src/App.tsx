@@ -1,20 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { COVER_STORY, STORIES, type Story } from "./data/news";
 import { DEFAULT_MEDIA_ITEM, RADIO_STATIONS, TV_CHANNELS, type LiveMediaItem } from "./data/media";
 import { mapApiStoryToStory, mapCategoryToTheme, type ApiStory } from "./utils/storyMapper";
 import { Dock, TopBar } from "./components/Chrome";
 import CoverPage from "./components/CoverPage";
 import Comparator from "./components/Comparator";
-import LiveMediaView from "./components/LiveMediaView";
 import PersistentLivePlayer from "./components/PersistentLivePlayer";
-import RadarView from "./components/RadarView";
-import StatsView from "./components/StatsView";
 import Reader from "./components/Reader";
-import TensionsView from "./components/geopolitics/TensionsView";
 import { normalizeHotspotId } from "./data/geopolitics";
 import { SavedDrawer, SearchModal } from "./components/Overlays";
 import { usePWAInstall, PWAInstallBanner, IOSInstallModal } from "./components/PWAInstall";
 import { loadLS } from "./components/ui";
+
+const LiveMediaView = lazy(() => import("./components/LiveMediaView"));
+const RadarView = lazy(() => import("./components/RadarView"));
+const StatsView = lazy(() => import("./components/StatsView"));
+const TensionsView = lazy(() => import("./components/geopolitics/TensionsView"));
 
 export type View = "capa" | "comparador" | "tensoes" | "radar" | "aovivo" | (string & {});
 
@@ -105,7 +106,7 @@ export default function App() {
 
         // Tenta carregar canais de TV ao vivo dinâmicos da API local
         try {
-          const liveRes = await fetch("/api/live/channels");
+          const liveRes = await fetch("./api/live/channels");
           if (liveRes.ok) {
             const liveData = await liveRes.json();
             if (liveData && Array.isArray(liveData.channels) && liveData.channels.length > 0 && mounted) {
@@ -423,40 +424,50 @@ export default function App() {
             initialOutlet={focusOutlet}
             onRead={setReaderId}
           />
-        ) : view === "tensoes" ? (
-          <TensionsView
-            stories={stories}
-            selectedHotspotId={selectedHotspotId}
-            onSelectHotspot={(id) => {
-              setSelectedHotspotId(normalizeHotspotId(id));
-              try {
-                window.history.replaceState(null, "", `#tensoes?hotspot=${normalizeHotspotId(id)}`);
-              } catch {
-                /* ignore */
-              }
-            }}
-            onCompare={openComparador}
-            onRead={setReaderId}
-            onSelectMedia={handleSelectChannel}
-          />
-        ) : view === "radar" ? (
-          <RadarView
-            stories={stories}
-            onCompare={openComparador}
-            onRead={setReaderId}
-            onAddStories={handleAddStories}
-          />
-        ) : view === "aovivo" ? (
-          <LiveMediaView
-            activeItem={activeMedia}
-            isPlaying={isPlaying}
-            tvChannels={tvChannels}
-            onSelectChannel={handleSelectChannel}
-            onTogglePlay={handleTogglePlay}
-          />
-        ) : view === "estatisticas" ? (
-          <StatsView />
-        ) : null}
+        ) : (
+          <Suspense
+            fallback={
+              <div className="mx-auto max-w-6xl px-4 py-12 text-center font-mono text-xs uppercase tracking-widest text-ink3">
+                Carregando módulo…
+              </div>
+            }
+          >
+            {view === "tensoes" ? (
+              <TensionsView
+                stories={stories}
+                selectedHotspotId={selectedHotspotId}
+                onSelectHotspot={(id) => {
+                  setSelectedHotspotId(normalizeHotspotId(id));
+                  try {
+                    window.history.replaceState(null, "", `#tensoes?hotspot=${normalizeHotspotId(id)}`);
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                onCompare={openComparador}
+                onRead={setReaderId}
+                onSelectMedia={handleSelectChannel}
+              />
+            ) : view === "radar" ? (
+              <RadarView
+                stories={stories}
+                onCompare={openComparador}
+                onRead={setReaderId}
+                onAddStories={handleAddStories}
+              />
+            ) : view === "aovivo" ? (
+              <LiveMediaView
+                activeItem={activeMedia}
+                isPlaying={isPlaying}
+                tvChannels={tvChannels}
+                onSelectChannel={handleSelectChannel}
+                onTogglePlay={handleTogglePlay}
+              />
+            ) : view === "estatisticas" ? (
+              <StatsView />
+            ) : null}
+          </Suspense>
+        )}
       </main>
 
       {/* Floating persistent mini-player mounted outside view switcher */}

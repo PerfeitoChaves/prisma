@@ -39,7 +39,7 @@ def analyze_text_bias(title: str, summary: str = "", language: str = "pt") -> Di
     # Tokenize words
     words = re.findall(r'\b[a-záàâãéèêíïóôõöúçñ]+\b', combined_text)
     
-    lexicon = LOADED_WORDS_PT if language == "pt" else LOADED_WORDS_EN
+    lexicon = LOADED_WORDS_PT if language == "pt" else (LOADED_WORDS_PT | LOADED_WORDS_EN)
     
     found_loaded = []
     for w in words:

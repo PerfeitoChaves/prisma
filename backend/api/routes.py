@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Query, BackgroundTasks, Response
 from typing import Optional, List, Dict, Any
 import asyncio
 import re
@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 from backend.models import TrendItem, TrendsResponse
 
 from backend.database import (
+    generate_rss_feed,
     get_stories,
     get_story_by_id,
     get_database_stats,
@@ -638,6 +639,12 @@ async def get_live_channels(refresh: bool = Query(False, description="Forçar re
 @router.get("/stats")
 async def system_stats():
     return get_database_stats()
+
+
+@router.get("/rss")
+async def rss_feed():
+    stories = get_stories(limit=40, min_sources=1)
+    return Response(content=generate_rss_feed(stories), media_type="application/rss+xml; charset=utf-8")
 
 @router.post("/refresh")
 async def trigger_refresh():

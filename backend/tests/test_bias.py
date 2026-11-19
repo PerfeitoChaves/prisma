@@ -39,5 +39,17 @@ class TestBiasDetector(unittest.TestCase):
         self.assertIsNotNone(warning2)
         self.assertIn("Cobertura Plural", warning2)
 
+    def test_loaded_words_detection_foreign_and_translated(self):
+        res_en = analyze_text_bias("Scandal blasts minister amid total chaos", language="en")
+        self.assertIn("scandal", res_en["loaded_words"])
+        self.assertIn("blasts", res_en["loaded_words"])
+        self.assertGreater(res_en["subjectivity_score"], 0.2)
+        self.assertEqual(res_en["sentiment_label"], "sensational_negative")
+
+        res_es = analyze_text_bias("Escândalo humilha governo em votação", language="es")
+        self.assertIn("humilha", res_es["loaded_words"])
+        self.assertGreater(res_es["subjectivity_score"], 0.2)
+        self.assertEqual(res_es["sentiment_label"], "sensational_negative")
+
 if __name__ == "__main__":
     unittest.main()

@@ -19,10 +19,11 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
-from backend.database import init_db, get_stories, get_database_stats
+from backend.database import init_db, get_stories, get_database_stats, generate_rss_feed
 from backend.ingestion.collector import run_collector
 from backend.analysis.clustering import run_clustering
 from backend.ingestion.youtube_live import resolve_live_channels
+from backend.api.routes import build_trends_catalog
 
 
 def _parse_words(v):
@@ -74,7 +75,22 @@ def build_ingest(payload: dict) -> dict:
                 "sentiment": a.get("sentiment_label") or "neutral",
                 "loaded_words": json.dumps(_parse_words(a.get("loaded_words")), ensure_ascii=False),
             })
-    meta = {k: payload.get(k) for k in ("stats", "live_channels", "updated_at")}
+    raw_stats = payload.get("stats")
+    light_stats = (
+        {
+            k: raw_stats[k]
+            for k in ("total_articles", "total_stories", "articles_by_category", "articles_by_spectrum", "top_sources")
+            if k in raw_stats
+        }
+        if isinstance(raw_stats, dict)
+        else raw_stats
+    )
+    meta = {
+        "stats": light_stats,
+        "live_channels": payload.get("live_channels"),
+        "trends": payload.get("trends"),
+        "updated_at": payload.get("updated_at"),
+    }
     return {
         "stories": stories,
         "articles": json.dumps(articles, ensure_ascii=False),
@@ -108,6 +124,10 @@ async def main():
     live_channels = await resolve_live_channels(force_refresh=True)
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {len(live_channels)} canais de TV ao vivo verificados.")
 
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Coletando tendências do Radar X...")
+    trends = await build_trends_catalog()
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] {len(trends)} tendências coletadas.")
+
     payload = {
         "version": "1.0",
         "updated_at": now_utc.isoformat(),
@@ -116,6 +136,7 @@ async def main():
         "stories": stories,
         "stats": stats,
         "live_channels": live_channels,
+        "trends": trends,
     }
 
     # 5a. No GitHub Actions: envia as pautas para o D1 via Worker e encerra (sem commit, sem rebuild)
@@ -140,23 +161,28 @@ async def main():
             sys.exit(1)
         return
 
-    # 5b. Local: salva o feed leve data/latest.json em docs/, frontend/ e client/public/
-    for out_dir in [
-        BASE_DIR / "docs" / "data",
-        BASE_DIR / "frontend" / "data",
-        BASE_DIR / "client" / "public" / "data",
+    # 5b. Local: salva o feed leve data/latest.json e feed.xml em docs/, frontend/ e client/public/
+    rss_xml = generate_rss_feed(stories, now_utc)
+    for root_dir in [
+        BASE_DIR / "docs",
+        BASE_DIR / "frontend",
+        BASE_DIR / "client" / "public",
     ]:
-        out_dir.mkdir(parents=True, exist_ok=True)
-        json_path = out_dir / "latest.json"
+        data_dir = root_dir / "data"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        json_path = data_dir / "latest.json"
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Exportado: {json_path} ({len(stories)} histórias)")
+        rss_path = root_dir / "feed.xml"
+        with open(rss_path, "w", encoding="utf-8") as f:
+            f.write(rss_xml)
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Exportado: {json_path} e {rss_path} ({len(stories)} histórias)")
 
     # 6. Reconstrói o frontend estático para docs/
     client_dir = BASE_DIR / "client"
     if client_dir.exists():
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Compilando frontend para docs/index.html...")
-        cmd = ["npm", "run", "build"]
+        cmd = ["npm.cmd" if os.name == "nt" else "npm", "run", "build"]
         build_proc = subprocess.run(cmd, cwd=str(client_dir), capture_output=True, text=True)
         if build_proc.returncode != 0:
             print("[ERRO BUILD]", build_proc.stderr)

@@ -15,9 +15,9 @@ class TestSources(unittest.TestCase):
             cls.sources = json.load(f)
 
     def test_sources_count_and_ids(self):
-        """Verifica que há 50+ fontes carregadas (86 no catálogo) e que todos os IDs são únicos."""
+        """Verifica que há 50+ fontes carregadas (101 no catálogo) e que todos os IDs são únicos."""
         self.assertGreaterEqual(len(self.sources), 50, "Deve haver ao menos 50 fontes cadastradas")
-        self.assertEqual(len(self.sources), 86, "Catálogo deve conter 86 veículos")
+        self.assertEqual(len(self.sources), 101, "Catálogo deve conter 101 veículos")
         ids = [s.get("id") for s in self.sources]
         self.assertEqual(len(ids), len(set(ids)), "IDs de fontes devem ser estritamente únicos")
 
@@ -30,7 +30,7 @@ class TestSources(unittest.TestCase):
                 self.assertTrue(s[key], f"Campo {key} na fonte {s.get('id')} não pode ser vazio")
 
     def test_sources_7_spectrums_representation(self):
-        """Verifica que todas as fontes pertencem aos 7 espectros editoriais e que todos os 7 estão cobertos."""
+        """Verifica que todas as fontes pertencem aos 8 espectros editoriais (7 políticos + ciência) e todos estão cobertos."""
         expected_spectrums = {
             "esquerda",
             "centro-esquerda",
@@ -38,18 +38,19 @@ class TestSources(unittest.TestCase):
             "centro-direita",
             "direita",
             "independentes",
-            "agências internacionais"
+            "agências internacionais",
+            "ciência"
         }
         found_spectrums = set(s["spectrum"] for s in self.sources)
         for spec in found_spectrums:
             self.assertIn(spec, expected_spectrums, f"Espectro inválido encontrado: {spec}")
 
-        # Todos os 7 espectros devem ter veículos alocados
-        self.assertEqual(found_spectrums, expected_spectrums, "Todos os 7 espectros devem ser representados")
+        # Todos os 8 espectros devem ter veículos alocados
+        self.assertEqual(found_spectrums, expected_spectrums, "Todos os 8 espectros devem ser representados")
 
     def test_sources_categories(self):
         """Verifica que todas as categorias são válidas e conhecidas."""
-        valid_categories = {"brasil", "mundo", "politica", "economia", "tecnologia", "jogos", "guerra"}
+        valid_categories = {"brasil", "mundo", "politica", "economia", "tecnologia", "jogos", "guerra", "ciencia"}
         for s in self.sources:
             self.assertIn(s["category"], valid_categories, f"Categoria inválida na fonte {s['id']}: {s['category']}")
 
@@ -81,7 +82,7 @@ class TestSources(unittest.TestCase):
         self.assertIn("url", sample)
 
     def test_sources_geopolitical_blocs(self):
-        """Verifica que todas as 86 fontes possuem geopolitical_bloc válido ('west', 'east', 'global_south')."""
+        """Verifica que todas as 101 fontes possuem geopolitical_bloc válido ('west', 'east', 'global_south')."""
         valid_blocs = {"west", "east", "global_south"}
         bloc_counts = {"west": 0, "east": 0, "global_south": 0}
         for s in self.sources:
@@ -90,9 +91,9 @@ class TestSources(unittest.TestCase):
             self.assertIn(bloc, valid_blocs, f"Bloco inválido '{bloc}' na fonte {s.get('id')}")
             bloc_counts[bloc] += 1
         
-        self.assertEqual(bloc_counts["west"], 26, "Deve haver exatamente 26 fontes no Bloco Ocidental")
+        self.assertEqual(bloc_counts["west"], 37, "Deve haver exatamente 37 fontes no Bloco Ocidental")
         self.assertEqual(bloc_counts["east"], 7, "Deve haver exatamente 7 fontes no Bloco Eurasiático")
-        self.assertEqual(bloc_counts["global_south"], 53, "Deve haver exatamente 53 fontes no Sul Global & Neutros")
+        self.assertEqual(bloc_counts["global_south"], 57, "Deve haver exatamente 57 fontes no Sul Global & Neutros")
 
 
 if __name__ == "__main__":

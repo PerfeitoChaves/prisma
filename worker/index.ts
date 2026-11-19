@@ -228,6 +228,119 @@ async function listStories(url: URL, env: Env): Promise<Response> {
   });
 }
 
+// GET /prisma/api/search?q=<termo>
+async function searchStories(url: URL, env: Env): Promise<Response> {
+  const q = (url.searchParams.get("q") ?? "").trim();
+  if (q.length < 2) return json({ query: q, count: 0, stories: [] });
+  const pattern = `%${q.replace(/[%_\\]/g, "\\$&")}%`;
+  const { results } = await env.DB.prepare(
+    `SELECT data FROM stories WHERE data LIKE ?1 ESCAPE '\\' ORDER BY latest_pub DESC LIMIT 30`
+  )
+    .bind(pattern)
+    .all<{ data: string }>();
+  const head = JSON.stringify({ query: q, count: results.length }).slice(0, -1);
+  const body = `${head},"stories":[${results.map((r) => r.data).join(",")}]}`;
+  return new Response(body, {
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=60" },
+  });
+}
+
+// GET /prisma/api/trends & /prisma/api/live/channels (lidos do cache 'feed' no meta)
+async function metaFeedSlice(
+  env: Env,
+  field: "trends" | "live_channels",
+  outKey: "trends" | "channels"
+): Promise<Response> {
+  const raw = await env.DB.prepare("SELECT value FROM meta WHERE key = 'feed'").first<string>("value");
+  if (!raw) return json({ updated_at: new Date().toISOString(), [outKey]: [] });
+  const parsed = JSON.parse(raw) as { updated_at?: string; trends?: unknown[]; live_channels?: unknown[] };
+  return new Response(
+    JSON.stringify({
+      updated_at: parsed.updated_at ?? new Date().toISOString(),
+      [outKey]: parsed[field] ?? [],
+    }),
+    {
+      headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=300" },
+    }
+  );
+}
+
+function xmlEsc(v: unknown): string {
+  return String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function toRfc822(iso: string | null | undefined): string {
+  const ms = iso ? Date.parse(iso) : NaN;
+  return Number.isFinite(ms) ? new Date(ms).toUTCString() : new Date().toUTCString();
+}
+
+// GET /prisma/feed.xml & /prisma/api/rss — RSS 2.0 das 30 pautas mais recentes no D1
+async function rssFeed(env: Env): Promise<Response> {
+  const { results } = await env.DB.prepare(
+    `SELECT key, latest_pub, data FROM stories ORDER BY latest_pub DESC LIMIT 30`
+  ).all<{ key: string; latest_pub: string; data: string }>();
+
+  const items: string[] = [];
+  for (const row of results) {
+    try {
+      const s = JSON.parse(row.data) as {
+        id?: string;
+        title?: string;
+        category?: string;
+        neutral_summary?: string;
+        consensus_facts?: string[];
+        blindspot_warning?: string;
+        source_count?: number;
+        articles?: unknown[];
+      };
+      const key = s.id || row.key;
+      const title = s.title || "Pauta PRISMA";
+      const link = `https://pchaves.org/prisma/#comparador?storyId=${key}`;
+      const srcCount = s.source_count ?? s.articles?.length ?? 1;
+      const parts = [s.neutral_summary || title, `Cobertura: ${srcCount} veículo(s) confirmam o fato.`];
+      if (Array.isArray(s.consensus_facts) && s.consensus_facts.length > 0) {
+        parts.push(`Consenso: ${s.consensus_facts.slice(0, 3).join(" | ")}`);
+      }
+      if (s.blindspot_warning) parts.push(s.blindspot_warning);
+
+      items.push(
+        `    <item>\n` +
+          `      <title>${xmlEsc(title)}</title>\n` +
+          `      <link>${xmlEsc(link)}</link>\n` +
+          `      <guid isPermaLink="false">${xmlEsc(`prisma-${key}`)}</guid>\n` +
+          `      <category>${xmlEsc(s.category || "brasil")}</category>\n` +
+          `      <pubDate>${toRfc822(row.latest_pub)}</pubDate>\n` +
+          `      <description>${xmlEsc(parts.join(" — "))}</description>\n` +
+          `    </item>`
+      );
+    } catch {
+      // ignora registro malformado
+    }
+  }
+
+  const xml =
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<rss version="2.0">\n` +
+    `  <channel>\n` +
+    `    <title>PRISMA — A Mesma História, Todos os Ângulos</title>\n` +
+    `    <link>https://pchaves.org/prisma/</link>\n` +
+    `    <description>Agregador jornalístico multi-fonte, síntese neutra, consenso factual e comparação de enquadramentos.</description>\n` +
+    `    <language>pt-BR</language>\n` +
+    `    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>\n` +
+    `${items.join("\n")}\n` +
+    `  </channel>\n` +
+    `</rss>\n`;
+
+  return new Response(xml, {
+    headers: { "Content-Type": "application/rss+xml; charset=utf-8", "Cache-Control": "public, max-age=300" },
+  });
+}
+
 export default {
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(watch(env, Date.now()));
@@ -240,7 +353,11 @@ export default {
     if (url.pathname === "/prisma/api/ingest" && request.method === "POST")
       return ingest(request, env).catch((e) => json({ error: String(e) }, 500));
     if (url.pathname === "/prisma/api/stories") return listStories(url, env);
+    if (url.pathname === "/prisma/api/search") return searchStories(url, env);
+    if (url.pathname === "/prisma/api/trends") return metaFeedSlice(env, "trends", "trends");
+    if (url.pathname === "/prisma/api/live/channels") return metaFeedSlice(env, "live_channels", "channels");
     if (url.pathname === "/prisma/api/stats") return stats(env);
+    if (url.pathname === "/prisma/feed.xml" || url.pathname === "/prisma/api/rss") return rssFeed(env);
     const path = url.pathname.startsWith("/prisma/") ? url.pathname : `/prisma${url.pathname}`;
     return fetch(ORIGIN + path + url.search, {
       method: request.method,

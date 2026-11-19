@@ -1,9 +1,8 @@
 import re
 import json
 from typing import Dict, Any, List, Optional
-import httpx
 
-from backend.config import GEMINI_API_KEY, GROQ_API_KEY, OLLAMA_BASE_URL, OLLAMA_MODEL, USE_OLLAMA
+from backend.analysis.llm_client import call_free_llm_json, is_free_ai_configured
 
 
 def clean_html(text: str) -> str:
@@ -37,8 +36,8 @@ def extract_numbers_and_data(text: str) -> List[str]:
 
 
 def generate_ai_compiled_summary(story_title: str, articles: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-    """Uses Google Gemini Free Tier, Groq Free Tier, or Ollama to generate a compiled multi-source synthesis."""
-    if not (GEMINI_API_KEY or GROQ_API_KEY or (USE_OLLAMA != "false")):
+    """Uses free-tier LLMs (Gemini Free, Groq Free, or local Ollama) to generate a compiled multi-source synthesis."""
+    if not is_free_ai_configured():
         return None
 
     sources_summary = []
@@ -48,7 +47,6 @@ def generate_ai_compiled_summary(story_title: str, articles: List[Dict[str, Any]
         title = a.get("title", "")
         summary = a.get("summary") or (a.get("full_text") or "")[:400]
         sources_summary.append(f"Veículo: {name} (Linha Editorial: {spec})\nManchete: {title}\nConteúdo reportado: {summary}\n")
-
 
     articles_text = "\n---\n".join(sources_summary)
 
@@ -71,49 +69,7 @@ def generate_ai_compiled_summary(story_title: str, articles: List[Dict[str, Any]
         "}"
     )
 
-    # 1. Gemini Free Tier
-    if GEMINI_API_KEY:
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
-            }
-            with httpx.Client(timeout=10.0) as client:
-                res = client.post(url, json=payload)
-                if res.status_code == 200:
-                    data = res.json()
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        text_resp = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                        return json.loads(text_resp)
-        except Exception as e:
-            print(f"[Compiler] Gemini compilation error: {e}")
-
-    # 2. Groq Free Tier
-    if GROQ_API_KEY:
-        try:
-            url = "https://api.groq.com/openai/v1/chat/completions"
-            headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
-            payload = {
-                "model": "llama-3.3-70b-versatile",
-                "messages": [
-                    {"role": "system", "content": "Responda apenas em JSON válido."},
-                    {"role": "user", "content": prompt}
-                ],
-                "response_format": {"type": "json_object"},
-                "temperature": 0.2
-            }
-            with httpx.Client(timeout=10.0) as client:
-                res = client.post(url, headers=headers, json=payload)
-                if res.status_code == 200:
-                    data = res.json()
-                    content = data["choices"][0]["message"]["content"]
-                    return json.loads(content)
-        except Exception as e:
-            print(f"[Compiler] Groq compilation error: {e}")
-
-    return None
+    return call_free_llm_json(prompt, timeout=10.0)
 
 def compile_story_summary(story: Dict[str, Any], articles: List[Dict[str, Any]]) -> Dict[str, Any]:
     """

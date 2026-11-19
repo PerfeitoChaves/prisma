@@ -1,8 +1,11 @@
 import sqlite3
 import json
+from collections import Counter, defaultdict
 from contextlib import contextmanager
+from email.utils import format_datetime
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+from xml.sax.saxutils import escape
 from backend.config import DB_PATH
 
 def init_db():
@@ -138,16 +141,44 @@ def save_article(article_data: Dict[str, Any]) -> bool:
             print(f"[DB] Error saving article {article_data.get('link')}: {e}")
             return False
 
-def get_articles_for_clustering(category: str, hours: int = 48) -> List[Dict[str, Any]]:
+def get_articles_for_clustering(
+    category: Optional[str] = None,
+    hours: int = 48,
+    exclude_category: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT * FROM articles
-            WHERE category = ?
-            ORDER BY published_at DESC
-            LIMIT 300
-        """, (category,))
-        rows = cursor.fetchall()
+        use_cat = bool(category and category != "todas")
+        limit = 300 if use_cat else 1800
+
+        base_filters: List[str] = []
+        base_params: List[Any] = []
+        if use_cat:
+            base_filters.append("category = ?")
+            base_params.append(category)
+        if exclude_category:
+            base_filters.append("category != ?")
+            base_params.append(exclude_category)
+
+        rows = []
+        if hours and hours > 0:
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).replace(tzinfo=None).isoformat()
+            where_sql = " AND ".join([*base_filters, "published_at >= ?"])
+            cursor.execute(
+                f"SELECT * FROM articles WHERE {where_sql} ORDER BY published_at DESC LIMIT ?",
+                (*base_params, cutoff, limit),
+            )
+            rows = cursor.fetchall()
+
+        # Fallback if DB only contains older articles (e.g. historical test fixtures)
+        if len(rows) < 5:
+            where_clause = f"WHERE {' AND '.join(base_filters)}" if base_filters else ""
+            cursor.execute(
+                f"SELECT * FROM articles {where_clause} ORDER BY published_at DESC LIMIT ?",
+                (*base_params, limit),
+            )
+            rows = cursor.fetchall()
+
         result = []
         for r in rows:
             d = dict(r)
@@ -165,9 +196,17 @@ def save_story_cluster(
     with get_connection() as conn:
         cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
-        
+
         # Check if story containing these articles already exists
         placeholders = ",".join(["?"] * len(article_ids))
+        cursor.execute(f"""
+            SELECT COUNT(DISTINCT source_id) AS src_cnt
+            FROM articles
+            WHERE id IN ({placeholders})
+        """, article_ids)
+        src_row = cursor.fetchone()
+        distinct_sources = src_row["src_cnt"] if src_row and src_row["src_cnt"] else len(article_ids)
+
         cursor.execute(f"""
             SELECT story_id, COUNT(*) as matches 
             FROM story_articles 
@@ -184,6 +223,7 @@ def save_story_cluster(
             cursor.execute("""
                 UPDATE stories SET
                     title = ?,
+                    category = ?,
                     updated_at = ?,
                     article_count = ?,
                     source_count = ?,
@@ -192,9 +232,10 @@ def save_story_cluster(
                 WHERE id = ?
             """, (
                 title,
+                category,
                 now,
                 len(article_ids),
-                len(set(spectrum_distribution.keys())),
+                distinct_sources,
                 json.dumps(spectrum_distribution, ensure_ascii=False),
                 blindspot_warning,
                 story_id
@@ -211,7 +252,7 @@ def save_story_cluster(
                 now,
                 now,
                 len(article_ids),
-                len(set(spectrum_distribution.keys())),
+                distinct_sources,
                 json.dumps(spectrum_distribution, ensure_ascii=False),
                 blindspot_warning
             ))
@@ -264,6 +305,10 @@ def get_distinct_categories() -> List[str]:
 def detect_topic(title: str, summary: str = "", category: str = "brasil") -> Dict[str, str]:
     cat = (category or "").lower()
     text = f"{title} {summary}".lower()
+
+    # 0. Ciência & Papers (preserva periódicos e preprints fora do espectro político)
+    if cat == "ciencia":
+        return {"name": "CIÊNCIA & PAPERS", "slug": "ciencia", "icon": ""}
 
     # 1. Games / Jogos
     if cat == "jogos" or any(k in text for k in ["game", "games", "jogo", "jogos", "playstation", "ps5", "ps4", "xbox", "nintendo", "switch", "steam", "gamer", "rpg", "gta", "fortnite", "zelda", "esports", "gameplay", "remake"]):
@@ -434,31 +479,229 @@ def get_story_by_id(story_id: int) -> Optional[Dict[str, Any]]:
         story["articles"] = articles
         return story
 
+_SPECTRUM_SCALE = {
+    "left": -2,
+    "center-left": -1,
+    "center": 0,
+    "center-right": 1,
+    "right": 2,
+}
+
+
 def get_database_stats() -> Dict[str, Any]:
+    computed_at = datetime.now(timezone.utc).isoformat()
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM articles")
-        total_articles = cursor.fetchone()[0]
-        
+        cursor.execute(
+            "SELECT COUNT(*), COUNT(DISTINCT source_id), MIN(published_at), MAX(published_at) FROM articles"
+        )
+        art_row = cursor.fetchone()
+        total_articles = art_row[0] or 0
+        total_sources = art_row[1] or 0
+        first_pub = art_row[2] or computed_at
+        last_pub = art_row[3] or computed_at
+
         cursor.execute("SELECT COUNT(*) FROM stories")
-        total_stories = cursor.fetchone()[0]
-        
+        total_stories = cursor.fetchone()[0] or 0
+
         cursor.execute("SELECT category, COUNT(*) FROM articles GROUP BY category")
         articles_by_cat = dict(cursor.fetchall())
-        
+
         cursor.execute("SELECT spectrum, COUNT(*) FROM articles GROUP BY spectrum")
         articles_by_spectrum = dict(cursor.fetchall())
-        
+
         cursor.execute("SELECT source_name, COUNT(*) FROM articles GROUP BY source_name ORDER BY COUNT(*) DESC LIMIT 10")
         top_sources = dict(cursor.fetchall())
-        
-        return {
-            "total_articles": total_articles,
-            "total_stories": total_stories,
-            "articles_by_category": articles_by_cat,
-            "articles_by_spectrum": articles_by_spectrum,
-            "top_sources": top_sources
+
+        # Full analytics payload compatible with StatsView.tsx (Worker parity)
+        cursor.execute("""
+            SELECT a.id, a.source_id, a.source_name, a.spectrum, a.category,
+                   a.subjectivity_score, a.sentiment_label, a.loaded_words, sa.story_id
+            FROM articles a
+            LEFT JOIN story_articles sa ON sa.article_id = a.id
+        """)
+        rows = cursor.fetchall()
+
+    # Aggregate in a single clean pass over joined rows
+    global_cats: Counter = Counter()
+    per_source_cats: Dict[str, Counter] = defaultdict(Counter)
+    spec_data: Dict[str, Dict[str, Any]] = {}
+    source_data: Dict[str, Dict[str, Any]] = {}
+    story_sources: Dict[int, Dict[str, int]] = defaultdict(dict)
+    story_all_sources: Dict[int, set] = defaultdict(set)
+    word_counts: Counter = Counter()
+    seen_article_ids = set()
+
+    for r in rows:
+        aid = r["id"]
+        sid = r["source_id"]
+        sname = r["source_name"] or sid
+        spec = r["spectrum"] or "center"
+        cat = r["category"] or "outros"
+        subj = float(r["subjectivity_score"] or 0.0)
+        sentiment = r["sentiment_label"] or "neutral"
+        story_id = r["story_id"]
+        is_political = cat != "ciencia"
+
+        if story_id is not None:
+            story_all_sources[story_id].add(sid)
+            if is_political and spec in _SPECTRUM_SCALE:
+                story_sources[story_id][sid] = _SPECTRUM_SCALE[spec]
+
+        if aid in seen_article_ids:
+            # Handle articles linked to multiple stories for story-level sets without double-counting article metrics
+            if story_id is not None:
+                source_data[sid]["stories"].add(story_id)
+                if is_political and spec in spec_data:
+                    spec_data[spec]["stories"].add(story_id)
+            continue
+        seen_article_ids.add(aid)
+
+        global_cats[cat] += 1
+        per_source_cats[sid][cat] += 1
+
+        if sid not in source_data:
+            source_data[sid] = {
+                "source_id": sid,
+                "source_name": sname,
+                "spectrum": spec,
+                "articles": 0,
+                "stories": set(),
+                "subj_sum": 0.0,
+                "loaded_cnt": 0,
+                "sens_cnt": 0,
+            }
+        sd = source_data[sid]
+        sd["articles"] += 1
+        sd["subj_sum"] += subj
+        if subj > 0:
+            sd["loaded_cnt"] += 1
+        if sentiment != "neutral":
+            sd["sens_cnt"] += 1
+        if story_id is not None:
+            sd["stories"].add(story_id)
+
+        if is_political and spec in _SPECTRUM_SCALE:
+            if spec not in spec_data:
+                spec_data[spec] = {
+                    "spectrum": spec,
+                    "articles": 0,
+                    "stories": set(),
+                    "subj_sum": 0.0,
+                    "loaded_cnt": 0,
+                    "sens_cnt": 0,
+                }
+            sp = spec_data[spec]
+            sp["articles"] += 1
+            sp["subj_sum"] += subj
+            if subj > 0:
+                sp["loaded_cnt"] += 1
+            if sentiment != "neutral":
+                sp["sens_cnt"] += 1
+            if story_id is not None:
+                sp["stories"].add(story_id)
+
+            if subj > 0:
+                sv = _SPECTRUM_SCALE[spec]
+                side = "esquerda" if sv < 0 else ("direita" if sv > 0 else "centro")
+                try:
+                    words = json.loads(r["loaded_words"] or "[]")
+                except Exception:
+                    words = []
+                for w in words:
+                    if isinstance(w, str) and w.strip():
+                        word_counts[(side, w.strip().lower())] += 1
+
+    by_spectrum = [
+        {
+            "spectrum": sp["spectrum"],
+            "articles": sp["articles"],
+            "stories": len(sp["stories"]),
+            "subjectivity": sp["subj_sum"] / (sp["articles"] or 1),
+            "loaded_rate": sp["loaded_cnt"] / (sp["articles"] or 1),
+            "sensational_rate": sp["sens_cnt"] / (sp["articles"] or 1),
         }
+        for sp in spec_data.values()
+    ]
+
+    coverage_counts: Counter = Counter()
+    source_lean_vals: Dict[str, List[float]] = defaultdict(list)
+    for st_id, src_map in story_sources.items():
+        n = len(src_map)
+        vals = list(src_map.values())
+        lo, hi = min(vals), max(vals)
+        if n == 1:
+            coverage_counts["single"] += 1
+        elif hi < 0:
+            coverage_counts["left_only"] += 1
+        elif lo > 0:
+            coverage_counts["right_only"] += 1
+        elif lo < 0 and hi > 0:
+            coverage_counts["both_sides"] += 1
+        else:
+            coverage_counts["center_mixed"] += 1
+
+        if n > 1:
+            total_sv = sum(vals)
+            for sid, v in src_map.items():
+                source_lean_vals[sid].append((total_sv - v) / (n - 1))
+
+    coverage = [{"kind": k, "stories": v} for k, v in coverage_counts.items()]
+
+    g_total = sum(global_cats.values()) or 1
+    all_cat_keys = set(global_cats.keys())
+    sources_list = []
+    for sid, sd in source_data.items():
+        n_art = sd["articles"] or 1
+        n_st = len(sd["stories"]) or 1
+        excl = sum(1 for st_id in sd["stories"] if len(story_all_sources.get(st_id, ())) == 1)
+        cats = dict(per_source_cats[sid])
+        s_total = sum(cats.values()) or 1
+        tv = sum(abs(cats.get(k, 0) / s_total - global_cats.get(k, 0) / g_total) for k in all_cat_keys)
+        lean_vals = source_lean_vals.get(sid)
+        entry: Dict[str, Any] = {
+            "source_id": sid,
+            "source_name": sd["source_name"],
+            "spectrum": sd["spectrum"],
+            "articles": sd["articles"],
+            "stories": len(sd["stories"]),
+            "subjectivity": sd["subj_sum"] / n_art,
+            "loaded_rate": sd["loaded_cnt"] / n_art,
+            "sensational_rate": sd["sens_cnt"] / n_art,
+            "exclusive_rate": excl / n_st,
+            "agenda_divergence": tv / 2.0,
+            "categories": cats,
+        }
+        if lean_vals:
+            entry["agenda_lean"] = sum(lean_vals) / len(lean_vals)
+            entry["shared_stories"] = len(lean_vals)
+        sources_list.append(entry)
+
+    loaded_words = [
+        {"side": side, "word": word, "n": count}
+        for (side, word), count in word_counts.most_common(120)
+    ]
+
+    return {
+        "total_articles": total_articles,
+        "total_stories": total_stories,
+        "articles_by_category": articles_by_cat,
+        "articles_by_spectrum": articles_by_spectrum,
+        "top_sources": top_sources,
+        "computed_at": computed_at,
+        "totals": {
+            "articles": total_articles,
+            "stories": total_stories,
+            "sources": total_sources,
+            "first": first_pub,
+            "last": last_pub,
+        },
+        "by_spectrum": by_spectrum,
+        "coverage": coverage,
+        "categories": dict(global_cats),
+        "sources": sources_list,
+        "loaded_words": loaded_words,
+    }
 
 def get_article_by_id(article_id: str) -> Optional[Dict[str, Any]]:
     with get_connection() as conn:
@@ -494,3 +737,85 @@ def update_article_reading_content(
             article_id
         ))
         conn.commit()
+
+
+def _parse_rfc822_date(value: Optional[str], fallback: datetime) -> str:
+    if value:
+        try:
+            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return format_datetime(dt)
+        except ValueError:
+            pass
+    return format_datetime(fallback)
+
+
+def _as_str_list(val: Any) -> List[str]:
+    if isinstance(val, list):
+        return [str(x).strip() for x in val if str(x).strip()]
+    if isinstance(val, str) and val.strip():
+        try:
+            parsed = json.loads(val)
+            if isinstance(parsed, list):
+                return [str(x).strip() for x in parsed if str(x).strip()]
+        except ValueError:
+            return [val.strip()]
+    return []
+
+
+def generate_rss_feed(stories: List[Dict[str, Any]], updated_at: Optional[datetime] = None) -> str:
+    """Gera XML RSS 2.0 válido com até 40 pautas consolidadas e seus consensos factuais."""
+    ref = updated_at or datetime.now(timezone.utc)
+    if ref.tzinfo is None:
+        ref = ref.replace(tzinfo=timezone.utc)
+
+    items_xml: List[str] = []
+    for s in stories[:40]:
+        arts = s.get("articles") or []
+        pubs = sorted((a.get("published_at") or a.get("created_at") or "", a["id"]) for a in arts if a.get("id"))
+        story_key = pubs[0][1] if pubs else str(s.get("id", ""))
+        latest_pub = max((p for p, _ in pubs), default="") or s.get("updated_at") or s.get("created_at")
+
+        title = str(s.get("title") or "Pauta PRISMA").strip()
+        category = str(s.get("category") or "brasil")
+        link = f"https://pchaves.org/prisma/#comparador?storyId={story_key}"
+        src_count = s.get("source_count") or len({a.get("source_id") for a in arts if a.get("source_id")}) or len(arts) or 1
+
+        desc_parts: List[str] = []
+        summary = str(s.get("neutral_summary") or title).strip()
+        if summary:
+            desc_parts.append(summary)
+        desc_parts.append(f"Cobertura: {src_count} veículo(s) confirmam o fato.")
+        consensus = _as_str_list(s.get("consensus_facts"))[:3]
+        if consensus:
+            desc_parts.append("Consenso: " + " | ".join(consensus))
+        blindspot = str(s.get("blindspot_warning") or "").strip()
+        if blindspot:
+            desc_parts.append(blindspot)
+
+        items_xml.append(
+            "    <item>\n"
+            f"      <title>{escape(title)}</title>\n"
+            f"      <link>{escape(link)}</link>\n"
+            f"      <guid isPermaLink=\"false\">{escape(f'prisma-{story_key}')}</guid>\n"
+            f"      <category>{escape(category)}</category>\n"
+            f"      <pubDate>{_parse_rfc822_date(latest_pub, ref)}</pubDate>\n"
+            f"      <description>{escape(' — '.join(desc_parts))}</description>\n"
+            "    </item>"
+        )
+
+    items_block = "\n".join(items_xml)
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<rss version="2.0">\n'
+        "  <channel>\n"
+        "    <title>PRISMA — A Mesma História, Todos os Ângulos</title>\n"
+        "    <link>https://pchaves.org/prisma/</link>\n"
+        "    <description>Agregador jornalístico multi-fonte, síntese neutra, consenso factual e comparação de enquadramentos.</description>\n"
+        "    <language>pt-BR</language>\n"
+        f"    <lastBuildDate>{format_datetime(ref)}</lastBuildDate>\n"
+        f"{items_block}\n"
+        "  </channel>\n"
+        "</rss>\n"
+    )

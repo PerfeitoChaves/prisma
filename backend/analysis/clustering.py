@@ -1,13 +1,20 @@
 import re
-from typing import List, Dict, Any, Set
+from collections import Counter, defaultdict
+from typing import List, Dict, Any, Optional
 import numpy as np
+from sklearn.cluster import AgglomerativeClustering
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from backend.config import CLUSTERING_SIMILARITY_THRESHOLD, CLUSTERING_TIME_WINDOW_HOURS
-from backend.database import get_articles_for_clustering, save_story_cluster, save_story_analysis, get_distinct_categories
+from backend.database import (
+    detect_topic,
+    get_articles_for_clustering,
+    save_story_cluster,
+    save_story_analysis,
+)
 from backend.analysis.bias_detector import calculate_spectrum_and_blindspots
-from backend.analysis.neutral_synthesizer import generate_story_synthesis
+from backend.analysis.neutral_synthesizer import generate_story_synthesis, reset_synthesis_budget
 
 
 # Common Portuguese and English stopwords for clean clustering
@@ -65,99 +72,152 @@ def pick_representative_headline(articles: List[Dict[str, Any]]) -> str:
     sorted_arts = sorted(articles, key=score_article)
     return sorted_arts[0]["title"]
 
-def cluster_articles_for_category(category: str) -> int:
-    articles = get_articles_for_clustering(category, hours=CLUSTERING_TIME_WINDOW_HOURS)
+_VALID_STORY_CATEGORIES = {
+    "brasil",
+    "mundo",
+    "politica",
+    "economia",
+    "tecnologia",
+    "jogos",
+    "guerra",
+    "ciencia",
+}
+
+
+def _resolve_cluster_category(
+    title: str, neutral_summary: str, cluster_articles: List[Dict[str, Any]], default_category: Optional[str]
+) -> str:
+    if default_category and default_category != "todas":
+        return default_category
+    cat_counts = Counter((a.get("category") or "brasil") for a in cluster_articles)
+    majority_cat = cat_counts.most_common(1)[0][0]
+    if majority_cat == "ciencia":
+        return "ciencia"
+    topic_slug = detect_topic(title, neutral_summary, majority_cat).get("slug", "geral")
+    if topic_slug in _VALID_STORY_CATEGORIES:
+        return topic_slug
+    return majority_cat if majority_cat in _VALID_STORY_CATEGORIES else "brasil"
+
+
+def cluster_articles(
+    articles: List[Dict[str, Any]], default_category: Optional[str] = None
+) -> Dict[str, int]:
+    """Agrupa artigos via AgglomerativeClustering (average linkage) sobre distância cosseno."""
     if not articles:
-        return 0
-        
+        return {"total_stories": 0}
+
     corpus = [f"{a['title']} {a.get('summary', '')}" for a in articles]
     cleaned_corpus = [preprocess_text(text) for text in corpus]
-    
-    # TF-IDF Vectorization
-    vectorizer = TfidfVectorizer(
-        stop_words=COMBINED_STOPWORDS,
-        ngram_range=(1, 2),
-        min_df=1,
-        max_features=4000
-    )
-    
-    try:
-        tfidf_matrix = vectorizer.fit_transform(cleaned_corpus)
-    except ValueError:
-        return 0
-        
-    similarity_matrix = cosine_similarity(tfidf_matrix)
+
     n = len(articles)
-    
-    # Graph-based clustering: find connected components where sim >= threshold
-    visited: Set[int] = set()
-    clusters: List[List[int]] = []
-    
-    for i in range(n):
-        if i in visited:
-            continue
-        cluster = [i]
-        visited.add(i)
-        
-        # Check all other articles
-        for j in range(i + 1, n):
-            if j in visited:
-                continue
-            # Calculate match with current cluster members
-            sims = [similarity_matrix[m][j] for m in cluster]
-            # If max similarity exceeds threshold, add to cluster
-            if max(sims) >= CLUSTERING_SIMILARITY_THRESHOLD:
-                cluster.append(j)
-                visited.add(j)
-                
-        clusters.append(cluster)
-        
-    # Save clusters
-    saved_stories_count = 0
-    # Process multi-article clusters first, then single-article ones
-    sorted_clusters = sorted(clusters, key=lambda c: len(c), reverse=True)
-    
+    if n == 1:
+        clusters: List[List[int]] = [[0]]
+    else:
+        vectorizer = TfidfVectorizer(
+            stop_words=COMBINED_STOPWORDS,
+            ngram_range=(1, 2),
+            min_df=1,
+            max_features=4000,
+        )
+        try:
+            tfidf_matrix = vectorizer.fit_transform(cleaned_corpus)
+        except ValueError:
+            return {"total_stories": 0}
+
+        similarity_matrix = cosine_similarity(tfidf_matrix)
+        distance_matrix = np.clip(1.0 - similarity_matrix, 0.0, 1.0)
+        np.fill_diagonal(distance_matrix, 0.0)
+        distance_matrix = (distance_matrix + distance_matrix.T) / 2.0
+
+        model = AgglomerativeClustering(
+            n_clusters=None,
+            metric="precomputed",
+            linkage="average",
+            distance_threshold=1.0 - CLUSTERING_SIMILARITY_THRESHOLD,
+        )
+        labels = model.fit_predict(distance_matrix)
+        grouped: Dict[int, List[int]] = defaultdict(list)
+        for idx, label in enumerate(labels):
+            grouped[int(label)].append(idx)
+        clusters = list(grouped.values())
+
+    # Process multi-source / larger clusters first so top stories receive AI synthesis budget
+    sorted_clusters = sorted(
+        clusters,
+        key=lambda c: (len({articles[i].get("source_id") for i in c}), len(c)),
+        reverse=True,
+    )
+
+    counts_by_cat: Dict[str, int] = defaultdict(int)
+    total_stories = 0
+
     for cluster_indices in sorted_clusters:
-        cluster_articles = [articles[idx] for idx in cluster_indices]
-        article_ids = [a["id"] for a in cluster_articles]
-        
-        # Calculate spectrum & blindspots
-        spectrum_dist, blindspot = calculate_spectrum_and_blindspots(cluster_articles)
-        title = pick_representative_headline(cluster_articles)
-        
-        # Save story cluster to DB
+        cluster_arts = [articles[idx] for idx in cluster_indices]
+        article_ids = [a["id"] for a in cluster_arts]
+
+        spectrum_dist, blindspot = calculate_spectrum_and_blindspots(cluster_arts)
+        title = pick_representative_headline(cluster_arts)
+        synthesis = generate_story_synthesis(title, cluster_arts)
+        story_category = _resolve_cluster_category(
+            title, synthesis.get("neutral_summary", ""), cluster_arts, default_category
+        )
+
         story_id = save_story_cluster(
             title=title,
-            category=category,
+            category=story_category,
             article_ids=article_ids,
             spectrum_distribution=spectrum_dist,
-            blindspot_warning=blindspot
+            blindspot_warning=blindspot,
         )
-        
-        # Generate neutral synthesis and framing contrast
-        synthesis = generate_story_synthesis(title, cluster_articles)
         save_story_analysis(
             story_id=story_id,
             neutral_summary=synthesis["neutral_summary"],
             consensus_facts=synthesis["consensus_facts"],
             divergent_points=synthesis["divergent_points"],
             framing_contrast=synthesis["framing_contrast"],
-            is_ai_generated=synthesis.get("is_ai_generated", False)
+            is_ai_generated=synthesis.get("is_ai_generated", False),
         )
-        saved_stories_count += 1
-        
-    return saved_stories_count
+        counts_by_cat[f"{story_category}_stories"] += 1
+        total_stories += 1
+
+    counts_by_cat["total_stories"] = total_stories
+    return dict(counts_by_cat)
+
+
+def cluster_articles_for_category(category: Optional[str] = None) -> int:
+    articles = get_articles_for_clustering(category, hours=CLUSTERING_TIME_WINDOW_HOURS)
+    if not articles:
+        return 0
+    res = cluster_articles(articles, default_category=category)
+    return res.get("total_stories", 0)
+
 
 def run_clustering() -> Dict[str, int]:
-    categories = get_distinct_categories()
-    if not categories:
-        categories = ["brasil", "mundo", "tecnologia", "jogos", "economia", "guerra", "politica", "ciencia"]
-    results = {}
+    """Executa clustering cross-category para notícias (48h) e separado para ciência (7d), respeitando o orçamento gratuito de IA."""
+    reset_synthesis_budget(12)
+    results: Dict[str, int] = {}
     total = 0
-    for cat in categories:
-        count = cluster_articles_for_category(cat)
-        results[f"{cat}_stories"] = count
-        total += count
+
+    news_articles = get_articles_for_clustering(
+        category=None,
+        hours=CLUSTERING_TIME_WINDOW_HOURS,
+        exclude_category="ciencia",
+    )
+    if news_articles:
+        news_res = cluster_articles(news_articles, default_category=None)
+        for k, v in news_res.items():
+            if k != "total_stories":
+                results[k] = results.get(k, 0) + v
+        total += news_res.get("total_stories", 0)
+
+    science_articles = get_articles_for_clustering(category="ciencia", hours=168)
+    if science_articles:
+        sci_res = cluster_articles(science_articles, default_category="ciencia")
+        for k, v in sci_res.items():
+            if k != "total_stories":
+                results[k] = results.get(k, 0) + v
+        total += sci_res.get("total_stories", 0)
+
     results["total_stories"] = total
     return results
 

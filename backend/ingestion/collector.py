@@ -12,7 +12,7 @@ import feedparser
 from backend.config import SOURCES_FILE, REQUEST_TIMEOUT, MAX_ARTICLES_PER_SOURCE
 from backend.database import save_article
 from backend.analysis.bias_detector import analyze_text_bias
-from backend.ingestion.translator import translate_to_pt
+from backend.ingestion.translator import translate_to_pt_async
 
 SPECTRUM_TO_POLITICAL = {
     "esquerda": "left",
@@ -98,14 +98,22 @@ async def fetch_feed(client: httpx.AsyncClient, source: Dict[str, Any]) -> List[
             article_id = hashlib.md5(link.encode("utf-8")).hexdigest()
             
             lang = source.get("language", "pt")
-            bias_metrics = analyze_text_bias(title, summary, lang)
-            
             title_original = title
             summary_original = summary
             if lang != "pt":
-                title = await asyncio.to_thread(translate_to_pt, title, lang)
+                title = await translate_to_pt_async(client, title, lang)
                 if summary:
-                    summary = await asyncio.to_thread(translate_to_pt, summary[:500], lang)
+                    summary = await translate_to_pt_async(client, summary[:500], lang)
+
+            bias_metrics = analyze_text_bias(title, summary, "pt")
+            if lang != "pt":
+                orig_bias = analyze_text_bias(title_original, summary_original, lang)
+                merged_words = list(dict.fromkeys([*bias_metrics["loaded_words"], *orig_bias["loaded_words"]]))
+                bias_metrics["loaded_words"] = merged_words
+                if orig_bias["subjectivity_score"] > bias_metrics["subjectivity_score"]:
+                    bias_metrics["subjectivity_score"] = orig_bias["subjectivity_score"]
+                if bias_metrics["sentiment_label"] == "neutral" and orig_bias["sentiment_label"] != "neutral":
+                    bias_metrics["sentiment_label"] = orig_bias["sentiment_label"]
             
             # Map editorial spectrum to political spectrum bucket for clustering & bias scoring
             spec_raw = source.get("spectrum", "center")

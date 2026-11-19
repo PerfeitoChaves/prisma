@@ -22,6 +22,14 @@ class TestApi(unittest.TestCase):
         data = response.json()
         self.assertIn("total_articles", data)
         self.assertIn("total_stories", data)
+        for key in ("computed_at", "totals", "by_spectrum", "coverage", "sources", "loaded_words"):
+            self.assertIn(key, data)
+
+    def test_rss_endpoint(self):
+        response = self.client.get("/api/rss")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("rss+xml", response.headers.get("content-type", ""))
+        self.assertIn('<rss version="2.0">', response.text)
 
     def test_stories_endpoint(self):
         response = self.client.get("/api/stories?limit=10")

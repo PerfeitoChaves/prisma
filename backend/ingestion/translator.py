@@ -3,10 +3,31 @@ import urllib.request
 import json
 import html
 import re
-from typing import Dict, List, Optional, Any
+from collections import OrderedDict
+from typing import Dict, List, Optional
+import httpx
 
-# In-memory translation cache to avoid duplicate HTTP calls
-_TRANSLATION_CACHE: Dict[str, str] = {}
+# Bounded in-memory translation cache to avoid duplicate HTTP calls
+_MAX_CACHE_SIZE = 5000
+_TRANSLATION_CACHE: "OrderedDict[str, str]" = OrderedDict()
+
+_DEFAULT_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+}
+
+
+def _cache_get(key: str) -> Optional[str]:
+    if key in _TRANSLATION_CACHE:
+        _TRANSLATION_CACHE.move_to_end(key)
+        return _TRANSLATION_CACHE[key]
+    return None
+
+
+def _cache_set(key: str, value: str) -> None:
+    _TRANSLATION_CACHE[key] = value
+    _TRANSLATION_CACHE.move_to_end(key)
+    while len(_TRANSLATION_CACHE) > _MAX_CACHE_SIZE:
+        _TRANSLATION_CACHE.popitem(last=False)
 
 
 def clean_text_for_translation(text: str) -> str:
@@ -18,12 +39,22 @@ def clean_text_for_translation(text: str) -> str:
     return clean
 
 
+def _build_translate_url(clean_text: str) -> str:
+    encoded = urllib.parse.quote(clean_text)
+    return f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=pt&dt=t&q={encoded}"
+
+
+def _extract_translated_text(data: object) -> str:
+    if not isinstance(data, list) or not data or not isinstance(data[0], list):
+        return ""
+    return "".join(part[0] for part in data[0] if isinstance(part, list) and part and part[0])
+
+
 def translate_to_pt(text: str, source_lang: Optional[str] = None) -> str:
-    """Translates text from source_lang to Brazilian Portuguese with in-memory caching."""
+    """Translates text from source_lang to Brazilian Portuguese with bounded in-memory caching."""
     if not text or not text.strip():
         return ""
 
-    # If already Portuguese or not specified as foreign, return as is
     if source_lang == "pt":
         return text
 
@@ -31,28 +62,50 @@ def translate_to_pt(text: str, source_lang: Optional[str] = None) -> str:
     if not clean_text:
         return ""
 
-    cache_key = clean_text
-    if cache_key in _TRANSLATION_CACHE:
-        return _TRANSLATION_CACHE[cache_key]
+    cached = _cache_get(clean_text)
+    if cached is not None:
+        return cached
 
     try:
-        encoded = urllib.parse.quote(cache_key)
-        url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=pt&dt=t&q={encoded}"
-        req = urllib.request.Request(
-            url,
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-            },
-        )
+        req = urllib.request.Request(_build_translate_url(clean_text), headers=_DEFAULT_HEADERS)
         with urllib.request.urlopen(req, timeout=6.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            translated = "".join([part[0] for part in data[0] if part and part[0]])
+            translated = _extract_translated_text(data)
             if translated:
-                _TRANSLATION_CACHE[cache_key] = translated
+                _cache_set(clean_text, translated)
                 return translated
             return clean_text
     except Exception:
-        # Fallback to original text if offline or timeout
+        return clean_text
+
+
+async def translate_to_pt_async(
+    client: httpx.AsyncClient, text: str, source_lang: Optional[str] = None
+) -> str:
+    """Async translation reusing an open httpx.AsyncClient without spawning threads."""
+    if not text or not text.strip():
+        return ""
+
+    if source_lang == "pt":
+        return text
+
+    clean_text = clean_text_for_translation(text)
+    if not clean_text:
+        return ""
+
+    cached = _cache_get(clean_text)
+    if cached is not None:
+        return cached
+
+    try:
+        resp = await client.get(_build_translate_url(clean_text), headers=_DEFAULT_HEADERS, timeout=6.0)
+        if resp.status_code == 200:
+            translated = _extract_translated_text(resp.json())
+            if translated:
+                _cache_set(clean_text, translated)
+                return translated
+        return clean_text
+    except Exception:
         return clean_text
 
 

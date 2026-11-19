@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import type { Story } from "../../data/news";
 import { HOTSPOTS, getHotspot, normalizeHotspotId } from "../../data/geopolitics";
+import { HOTSPOT_RULES, matchStoriesForHotspot } from "../../utils/hotspotMatcher";
+import { mapApiStoryToStory, type ApiStory } from "../../utils/storyMapper";
 import TacticalWorldMap from "./TacticalWorldMap";
 import TacticalLeafletMap from "./TacticalLeafletMap";
 import HotspotsFeed from "./HotspotsFeed";
@@ -26,6 +28,7 @@ interface TensionsViewProps {
   onCompare: (storyId?: string, outlet?: string) => void;
   onRead: (storyId: string) => void;
   onSelectMedia?: (media: LiveMediaItem) => void;
+  onAddStories?: (newStories: Story[]) => void;
   className?: string;
 }
 
@@ -36,6 +39,7 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
   onCompare,
   onRead,
   onSelectMedia,
+  onAddStories,
   className = "",
 }) => {
   // Mobile / Desktop View Mode: 'mapa' (Leaflet) vs 'svg' (SVG esquemático) vs 'feed' (Cards)
@@ -43,6 +47,69 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
 
   // Expandable Narrative Matrix toggle
   const [matrixExpanded, setMatrixExpanded] = useState<boolean>(true);
+
+  // Incrementado apenas quando o usuário escolhe explicitamente um foco (evita zoom brusco na abertura)
+  const [selectionTrigger, setSelectionTrigger] = useState<number>(0);
+
+  // Acervo extra de guerra/mundo e busca sob demanda no D1
+  const [geoStories, setGeoStories] = useState<Story[]>([]);
+  const [geoFeedsLoaded, setGeoFeedsLoaded] = useState<boolean>(false);
+  const [loadingHotspotStories, setLoadingHotspotStories] = useState<boolean>(false);
+  const searchedHotspotsRef = useRef<Set<string>>(new Set());
+
+  const mergeIncoming = useCallback(
+    (incoming: Story[]) => {
+      if (incoming.length === 0) return;
+      setGeoStories((prev) => {
+        const ids = new Set(prev.map((s) => s.id));
+        const fresh = incoming.filter((s) => !ids.has(s.id));
+        return fresh.length > 0 ? [...prev, ...fresh] : prev;
+      });
+      onAddStories?.(incoming);
+    },
+    [onAddStories]
+  );
+
+  // Ao abrir Tensões, puxa matérias reais de 'guerra' e 'mundo' do D1 (custo zero)
+  useEffect(() => {
+    let active = true;
+    async function loadGeoFeeds() {
+      try {
+        const [warRes, worldRes] = await Promise.allSettled([
+          fetch("./api/stories?category=guerra&limit=40"),
+          fetch("./api/stories?category=mundo&limit=40"),
+        ]);
+        const collected: Story[] = [];
+        for (const res of [warRes, worldRes]) {
+          if (res.status === "fulfilled" && res.value.ok) {
+            const data = await res.value.json();
+            if (Array.isArray(data?.stories)) {
+              collected.push(...data.stories.map((s: ApiStory) => mapApiStoryToStory(s)));
+            }
+          }
+        }
+        if (active && collected.length > 0) {
+          mergeIncoming(collected);
+        }
+      } catch {
+        /* ambiente estático */
+      } finally {
+        if (active) setGeoFeedsLoaded(true);
+      }
+    }
+    loadGeoFeeds();
+    return () => {
+      active = false;
+    };
+  }, [mergeIncoming]);
+
+  // Pool combinado (capa + guerra/mundo + buscas D1), sem duplicatas
+  const allStoriesPool = useMemo(() => {
+    const map = new Map<string, Story>();
+    for (const s of stories) map.set(s.id, s);
+    for (const s of geoStories) if (!map.has(s.id)) map.set(s.id, s);
+    return Array.from(map.values());
+  }, [stories, geoStories]);
 
   // Normalized active hotspot
   const activeHotspotId = useMemo(() => {
@@ -54,6 +121,93 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
   const activeHotspot = useMemo(() => {
     return getHotspot(activeHotspotId) || HOTSPOTS[0];
   }, [activeHotspotId]);
+
+  // Correlação real de matérias para todos os 8 hotspots
+  const storiesByHotspot = useMemo(() => {
+    const out: Record<string, Story[]> = {};
+    for (const h of HOTSPOTS) {
+      const related = [...(h.relatedStoryIds || []), ...(h.correlatedStoryIds || [])];
+      out[h.id] = matchStoriesForHotspot(h.id, allStoriesPool, related);
+    }
+    return out;
+  }, [allStoriesPool]);
+
+  const storiesByHotspotRef = useRef(storiesByHotspot);
+  storiesByHotspotRef.current = storiesByHotspot;
+
+  // Após carregar guerra/mundo, se o foco ativo ainda tiver < 3 matérias, busca no D1 (1x por foco)
+  useEffect(() => {
+    if (!geoFeedsLoaded) return;
+    const rule = HOTSPOT_RULES[activeHotspotId];
+    if (!rule || searchedHotspotsRef.current.has(activeHotspotId)) {
+      setLoadingHotspotStories(false);
+      return;
+    }
+    if ((storiesByHotspotRef.current[activeHotspotId]?.length ?? 0) >= 3) {
+      setLoadingHotspotStories(false);
+      return;
+    }
+
+    searchedHotspotsRef.current.add(activeHotspotId);
+    let active = true;
+    setLoadingHotspotStories(true);
+
+    fetch(`./api/search?q=${encodeURIComponent(rule.searchQuery)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!active || !Array.isArray(data?.stories)) return;
+        const mapped = data.stories.map((s: ApiStory) => mapApiStoryToStory(s));
+        mergeIncoming(mapped);
+      })
+      .catch(() => {
+        /* offline */
+      })
+      .finally(() => {
+        if (active) setLoadingHotspotStories(false);
+      });
+
+    return () => {
+      active = false;
+      setLoadingHotspotStories(false);
+    };
+  }, [activeHotspotId, geoFeedsLoaded, mergeIncoming]);
+
+  const handleSelectHotspotInteractive = useCallback(
+    (id: string) => {
+      onSelectHotspot(id);
+      setSelectionTrigger((n) => n + 1);
+    },
+    [onSelectHotspot]
+  );
+
+  const handleScrollToDossier = useCallback(() => {
+    document.getElementById("hotspot-dossier")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  // Garante que qualquer clique em "Comparar" abra uma pauta REAL existente no acervo (nunca um slug legado quebrado)
+  const handleSafeCompare = useCallback(
+    (storyId?: string, outlet?: string) => {
+      const exists = storyId && allStoriesPool.some((s) => s.id === storyId);
+      if (exists) {
+        onCompare(storyId, outlet);
+        return;
+      }
+      const fallbackReal = storiesByHotspot[activeHotspotId]?.[0]?.id ?? allStoriesPool[0]?.id;
+      onCompare(fallbackReal, outlet);
+    },
+    [allStoriesPool, storiesByHotspot, activeHotspotId, onCompare]
+  );
+
+  const activeCorrelated = storiesByHotspot[activeHotspotId] || [];
+  const hotspotsWithLiveCounts = useMemo(
+    () =>
+      HOTSPOTS.map((h) => ({
+        ...h,
+        newsCount: storiesByHotspot[h.id]?.length ?? 0,
+        articleCount: storiesByHotspot[h.id]?.length ?? 0,
+      })),
+    [storiesByHotspot]
+  );
 
   return (
     <div className={`mx-auto max-w-7xl px-3 sm:px-4 py-4 sm:py-6 pb-28 md:pb-12 ${className}`}>
@@ -78,7 +232,7 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
 
             <p className="mt-1.5 max-w-3xl text-xs sm:text-sm text-slate-300 leading-relaxed">
               Monitoramento tático em tempo real dos 8 principais pontos de atrito geopolítico do planeta,
-              cruzando o enquadramento de 86 veículos de imprensa internacionais classificados em três blocos estratégicos:
+              cruzando o enquadramento de 101 veículos de imprensa e pesquisa classificados em três blocos estratégicos:
               <strong className="text-blue-300"> Bloco Ocidental</strong>,
               <strong className="text-red-300"> Bloco Eurasiático</strong> e
               <strong className="text-amber-300"> Sul Global & Neutros</strong>.
@@ -99,7 +253,7 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
               <Radio className="h-4 w-4 text-cyan-400" />
               <div>
                 <div className="text-[10px] text-slate-400 uppercase">Fontes Ativas</div>
-                <div className="font-bold text-slate-100">86 Veículos</div>
+                <div className="font-bold text-slate-100">101 Veículos</div>
               </div>
             </div>
 
@@ -128,11 +282,13 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
                 ? "bg-orange-400"
                 : "bg-yellow-400";
 
+            const liveCount = storiesByHotspot[h.id]?.length ?? 0;
+
             return (
               <button
                 key={h.id}
-                onClick={() => onSelectHotspot(h.id)}
-                className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                onClick={() => handleSelectHotspotInteractive(h.id)}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer ${
                   isSelected
                     ? "bg-cyan-500/25 text-cyan-200 border border-cyan-400/60 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
                     : "bg-slate-900/70 text-slate-300 hover:bg-slate-800 border border-slate-800"
@@ -140,6 +296,11 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
                 <span>{h.title}</span>
+                {liveCount > 0 && (
+                  <span className="rounded bg-slate-800/90 px-1 text-[9.5px] font-bold text-cyan-300">
+                    {liveCount}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -198,19 +359,25 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
       {/* Conditional View: Mapa Leaflet vs SVG vs Feed */}
       {viewMode === "mapa" ? (
         <div className="flex flex-col gap-6">
-          {/* Tactical Leaflet Map with CartoDB Dark Matter tiles, scroll-zoom, drag, media pins, quakes, chokepoints */}
+          {/* Tactical Leaflet Map otimizado: sem lag no hover, popups de notícias reais e scroll seguro */}
           <TacticalLeafletMap
-            hotspots={HOTSPOTS}
+            hotspots={hotspotsWithLiveCounts}
             selectedHotspotId={activeHotspotId}
-            onSelectHotspot={onSelectHotspot}
+            selectionTrigger={selectionTrigger}
+            storiesByHotspot={storiesByHotspot}
+            onSelectHotspot={handleSelectHotspotInteractive}
             onSelectMedia={onSelectMedia}
+            onCompare={handleSafeCompare}
+            onScrollToDossier={handleScrollToDossier}
           />
 
           {/* Hotspot Intelligence Dossier */}
           <HotspotIntelligencePanel
             hotspot={activeHotspot}
-            allStories={stories}
-            onCompare={onCompare}
+            allStories={allStoriesPool}
+            correlatedStoriesOverride={activeCorrelated}
+            loadingStories={loadingHotspotStories}
+            onCompare={handleSafeCompare}
             onRead={onRead}
           />
         </div>
@@ -218,16 +385,18 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
         <div className="flex flex-col gap-6">
           {/* Tactical SVG Map */}
           <TacticalWorldMap
-            hotspots={HOTSPOTS}
+            hotspots={hotspotsWithLiveCounts}
             selectedHotspotId={activeHotspotId}
-            onSelectHotspot={onSelectHotspot}
+            onSelectHotspot={handleSelectHotspotInteractive}
           />
 
           {/* Hotspot Intelligence Dossier */}
           <HotspotIntelligencePanel
             hotspot={activeHotspot}
-            allStories={stories}
-            onCompare={onCompare}
+            allStories={allStoriesPool}
+            correlatedStoriesOverride={activeCorrelated}
+            loadingStories={loadingHotspotStories}
+            onCompare={handleSafeCompare}
             onRead={onRead}
           />
         </div>
@@ -235,21 +404,23 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
         <div className="flex flex-col gap-6">
           {/* Crisis Feed of Cards */}
           <HotspotsFeed
-            hotspots={HOTSPOTS}
+            hotspots={hotspotsWithLiveCounts}
             selectedHotspotId={activeHotspotId}
-            onSelectHotspot={onSelectHotspot}
+            onSelectHotspot={handleSelectHotspotInteractive}
             onSwitchToMap={(id) => {
-              onSelectHotspot(id);
+              handleSelectHotspotInteractive(id);
               setViewMode("mapa");
             }}
-            onOpenComparator={onCompare}
+            onOpenComparator={handleSafeCompare}
           />
 
           {/* Hotspot Intelligence Dossier */}
           <HotspotIntelligencePanel
             hotspot={activeHotspot}
-            allStories={stories}
-            onCompare={onCompare}
+            allStories={allStoriesPool}
+            correlatedStoriesOverride={activeCorrelated}
+            loadingStories={loadingHotspotStories}
+            onCompare={handleSafeCompare}
             onRead={onRead}
           />
         </div>
@@ -297,7 +468,7 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
         {matrixExpanded && (
           <NarrativeMatrix
             hotspotId={activeHotspotId}
-            onCompare={(storyId) => onCompare(storyId)}
+            onCompare={(storyId) => handleSafeCompare(storyId)}
             onReadStory={onRead}
           />
         )}
@@ -313,11 +484,8 @@ export const TensionsView: React.FC<TensionsViewProps> = ({
         </div>
         <button
           type="button"
-          onClick={() => {
-            const firstStoryId = activeHotspot?.relatedStoryIds?.[0] || "ucrania";
-            onCompare(firstStoryId);
-          }}
-          className="flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-950/60 px-4 py-2 font-bold text-cyan-300 hover:bg-cyan-900/60 transition-colors whitespace-nowrap"
+          onClick={() => handleSafeCompare(activeCorrelated[0]?.id)}
+          className="flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-950/60 px-4 py-2 font-bold text-cyan-300 hover:bg-cyan-900/60 transition-colors whitespace-nowrap cursor-pointer"
         >
           <span>Abrir no Comparador de Manchetes</span>
           <ExternalLink className="h-3.5 w-3.5" />

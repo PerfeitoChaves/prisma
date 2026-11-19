@@ -384,6 +384,16 @@ export default function App() {
     [nextBefore, themeCursors, themeCounts]
   );
 
+  const handleSelectHotspot = useCallback((id: string) => {
+    const norm = normalizeHotspotId(id);
+    setSelectedHotspotId(norm);
+    try {
+      window.history.replaceState(null, "", `#tensoes?hotspot=${norm}`);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const handleAddStories = useCallback((newStories: Story[]) => {
     setStories((prev) => {
       const existingIds = new Set(prev.map((s) => s.id));
@@ -462,17 +472,11 @@ export default function App() {
               <TensionsView
                 stories={stories}
                 selectedHotspotId={selectedHotspotId}
-                onSelectHotspot={(id) => {
-                  setSelectedHotspotId(normalizeHotspotId(id));
-                  try {
-                    window.history.replaceState(null, "", `#tensoes?hotspot=${normalizeHotspotId(id)}`);
-                  } catch {
-                    /* ignore */
-                  }
-                }}
+                onSelectHotspot={handleSelectHotspot}
                 onCompare={openComparador}
                 onRead={setReaderId}
                 onSelectMedia={handleSelectChannel}
+                onAddStories={handleAddStories}
               />
             ) : view === "radar" ? (
               <RadarView

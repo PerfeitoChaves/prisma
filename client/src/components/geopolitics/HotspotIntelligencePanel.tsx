@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import type { Hotspot, Actor } from "../../types/geopolitics";
 import { OUTLETS, type Story } from "../../data/news";
 import { GEOPOLITICAL_BLOCS } from "../../data/geopolitics";
+import { matchStoriesForHotspot } from "../../utils/hotspotMatcher";
 import {
   ShieldAlert,
   FileText,
@@ -13,11 +14,14 @@ import {
   Target,
   Sparkles,
   Info,
+  RefreshCw,
 } from "lucide-react";
 
 interface HotspotIntelligencePanelProps {
   hotspot: Hotspot | null;
   allStories?: Story[];
+  correlatedStoriesOverride?: Story[];
+  loadingStories?: boolean;
   onClose?: () => void;
   onCompare?: (storyId?: string, outlet?: string) => void;
   onRead?: (storyId: string) => void;
@@ -27,39 +31,20 @@ interface HotspotIntelligencePanelProps {
 export const HotspotIntelligencePanel: React.FC<HotspotIntelligencePanelProps> = ({
   hotspot,
   allStories = [],
+  correlatedStoriesOverride,
+  loadingStories = false,
   onClose,
   onCompare,
   onRead,
   className = "",
 }) => {
-  // Find correlated stories matching the hotspot's relatedStoryIds or topic keywords
+  // Usa lista correlacionada real do D1 (ou faz match sem acentos sobre allStories, sem inventar matérias aleatórias)
   const correlatedStories = useMemo(() => {
     if (!hotspot) return [];
-    const targetIds = new Set(
-      [...(hotspot.relatedStoryIds || []), ...(hotspot.correlatedStoryIds || [])].map((id) =>
-        id.toLowerCase().trim()
-      )
-    );
-
-    const matches = allStories.filter((story) => {
-      // 1. Direct ID match
-      if (targetIds.has(story.id.toLowerCase())) return true;
-      // 2. Keyword match in title or summary
-      const text = `${story.title} ${story.summary} ${story.kicker || ""} ${story.theme || ""}`.toLowerCase();
-      if (hotspot.id === "ormuz" && (text.includes("ormuz") || text.includes("petróleo") || text.includes("golfo pérsico") || text.includes("irã"))) return true;
-      if (hotspot.id === "ucrania" && (text.includes("ucrânia") || text.includes("rússia") || text.includes("otan") || text.includes("zelensky"))) return true;
-      if (hotspot.id === "taiwan" && (text.includes("taiwan") || text.includes("semicondutores") || text.includes("pequim") || text.includes("tsmc"))) return true;
-      if (hotspot.id === "mar_vermelho" && (text.includes("vermelho") || text.includes("houthi") || text.includes("bab el-mandeb") || text.includes("iêmen"))) return true;
-      if (hotspot.id === "gaza" && (text.includes("gaza") || text.includes("israel") || text.includes("palestina") || text.includes("líbano"))) return true;
-      if (hotspot.id === "coreia" && (text.includes("coreia") || text.includes("pyongyang") || text.includes("nuclear") || text.includes("kim jong"))) return true;
-      if (hotspot.id === "sahel" && (text.includes("sahel") || text.includes("sudão") || text.includes("níger") || text.includes("áfrica"))) return true;
-      if (hotspot.id === "essequibo" && (text.includes("essequibo") || text.includes("guiana") || text.includes("maduro") || text.includes("venezuela"))) return true;
-      return false;
-    });
-
-    // If no direct matches, return first 2 general stories as fallback context
-    return matches.length > 0 ? matches.slice(0, 4) : allStories.slice(0, 2);
-  }, [hotspot, allStories]);
+    if (correlatedStoriesOverride) return correlatedStoriesOverride.slice(0, 6);
+    const related = [...(hotspot.relatedStoryIds || []), ...(hotspot.correlatedStoryIds || [])];
+    return matchStoriesForHotspot(hotspot.id, allStories, related).slice(0, 6);
+  }, [hotspot, allStories, correlatedStoriesOverride]);
 
   if (!hotspot) {
     return (
@@ -79,10 +64,10 @@ export const HotspotIntelligencePanel: React.FC<HotspotIntelligencePanelProps> =
 
   const sev = hotspot.severity || hotspot.tensionLevel || "moderado";
   const score = hotspot.tensionScore ?? (sev === "critico" ? 92 : sev === "alto" ? 78 : 62);
-  const newsNum = hotspot.newsCount ?? hotspot.articleCount ?? 24;
+  const newsNum = correlatedStories.length;
 
   return (
-    <div className={`flex flex-col rounded-2xl border border-slate-800 bg-slate-950/90 text-slate-100 shadow-2xl backdrop-blur-md overflow-hidden ${className}`}>
+    <div id="hotspot-dossier" className={`flex flex-col rounded-2xl border border-slate-800 bg-slate-950/90 text-slate-100 shadow-2xl backdrop-blur-md overflow-hidden ${className}`}>
       {/* Dossier Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-800/80 bg-slate-900/60 p-4 sm:p-5">
         <div>
@@ -229,74 +214,85 @@ export const HotspotIntelligencePanel: React.FC<HotspotIntelligencePanelProps> =
           </div>
 
           <div className="mt-2.5 flex flex-col gap-2">
-            {correlatedStories.map((story) => (
-              <div
-                key={story.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800/80 bg-slate-900/50 p-3 transition-colors hover:border-slate-700 hover:bg-slate-900/80"
-              >
-                <div className="flex-1 min-w-[240px]">
-                  <div className="flex items-center gap-2 font-mono text-[10px] text-slate-400">
-                    <span className="rounded bg-slate-800 px-1.5 py-0.5 uppercase font-semibold text-slate-300">
-                      {story.theme}
-                    </span>
-                    <span>•</span>
-                    <span>{story.time}</span>
-                    <span>•</span>
-                    <span className="text-cyan-400 font-bold">{story.coverage.length} fontes</span>
+            {loadingStories && correlatedStories.length === 0 ? (
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/50 py-6 font-mono text-xs text-slate-400">
+                <RefreshCw className="h-4 w-4 animate-spin text-cyan-400" />
+                <span>Buscando matérias recentes sobre {hotspot.title} no acervo…</span>
+              </div>
+            ) : correlatedStories.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-800 bg-slate-900/40 px-4 py-6 text-center text-xs text-slate-400">
+                Nenhuma matéria recente correlacionada a <strong className="text-slate-200">{hotspot.title}</strong> nas últimas atualizações do acervo.
+              </div>
+            ) : (
+              correlatedStories.map((story) => (
+                <div
+                  key={story.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800/80 bg-slate-900/50 p-3 transition-colors hover:border-slate-700 hover:bg-slate-900/80"
+                >
+                  <div className="flex-1 min-w-[240px]">
+                    <div className="flex items-center gap-2 font-mono text-[10px] text-slate-400">
+                      <span className="rounded bg-slate-800 px-1.5 py-0.5 uppercase font-semibold text-slate-300">
+                        {story.theme}
+                      </span>
+                      <span>•</span>
+                      <span>{story.time}</span>
+                      <span>•</span>
+                      <span className="text-cyan-400 font-bold">{story.coverage.length} fontes</span>
+                    </div>
+
+                    <h5 className="mt-1 font-display text-sm font-bold text-slate-100 leading-snug">
+                      {story.title}
+                    </h5>
+
+                    {/* Outlets preview pills */}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                      {story.coverage.slice(0, 4).map((cov) => {
+                        const outlet = OUTLETS.find((o) => o.id === cov.outletId);
+                        return (
+                          <span
+                            key={cov.outletId}
+                            className="inline-flex items-center gap-1 rounded border border-slate-800 bg-slate-950 px-1.5 py-0.5 text-[9.5px] font-mono text-slate-300"
+                          >
+                            <span>{outlet?.flag || "📰"}</span>
+                            <span>{outlet?.name || cov.outletId}</span>
+                          </span>
+                        );
+                      })}
+                      {story.coverage.length > 4 && (
+                        <span className="text-[9.5px] font-mono text-slate-400">
+                          +{story.coverage.length - 4}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <h5 className="mt-1 font-display text-sm font-bold text-slate-100 leading-snug">
-                    {story.title}
-                  </h5>
+                  {/* Story Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    {onRead && (
+                      <button
+                        type="button"
+                        onClick={() => onRead(story.id)}
+                        className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 font-mono text-[11px] font-semibold text-slate-200 hover:border-slate-600 hover:text-white transition-colors cursor-pointer"
+                      >
+                        <BookOpen className="h-3 w-3" />
+                        <span>Ler</span>
+                      </button>
+                    )}
 
-                  {/* Outlets preview pills */}
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                    {story.coverage.slice(0, 4).map((cov) => {
-                      const outlet = OUTLETS.find((o) => o.id === cov.outletId);
-                      return (
-                        <span
-                          key={cov.outletId}
-                          className="inline-flex items-center gap-1 rounded border border-slate-800 bg-slate-950 px-1.5 py-0.5 text-[9.5px] font-mono text-slate-300"
-                        >
-                          <span>{outlet?.flag || "📰"}</span>
-                          <span>{outlet?.name || cov.outletId}</span>
-                        </span>
-                      );
-                    })}
-                    {story.coverage.length > 4 && (
-                      <span className="text-[9.5px] font-mono text-slate-400">
-                        +{story.coverage.length - 4}
-                      </span>
+                    {onCompare && (
+                      <button
+                        type="button"
+                        onClick={() => onCompare(story.id)}
+                        className="flex items-center gap-1 rounded-lg border border-cyan-500/40 bg-cyan-950/60 px-3 py-1.5 font-mono text-[11px] font-bold text-cyan-300 hover:bg-cyan-900/60 transition-colors cursor-pointer"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        <span>Comparar</span>
+                      </button>
                     )}
                   </div>
                 </div>
-
-                {/* Story Action Buttons */}
-                <div className="flex items-center gap-2">
-                  {onRead && (
-                    <button
-                      type="button"
-                      onClick={() => onRead(story.id)}
-                      className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 font-mono text-[11px] font-semibold text-slate-200 hover:border-slate-600 hover:text-white transition-colors"
-                    >
-                      <BookOpen className="h-3 w-3" />
-                      <span>Ler</span>
-                    </button>
-                  )}
-
-                  {onCompare && (
-                    <button
-                      type="button"
-                      onClick={() => onCompare(story.id)}
-                      className="flex items-center gap-1 rounded-lg border border-cyan-500/40 bg-cyan-950/60 px-3 py-1.5 font-mono text-[11px] font-bold text-cyan-300 hover:bg-cyan-900/60 transition-colors"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      <span>Comparar</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

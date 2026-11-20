@@ -196,11 +196,9 @@ export const TacticalLeafletMap: React.FC<TacticalLeafletMapProps> = ({
       attributionControl: false,
     });
 
-    const cartoKey = (
-      (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_CARTO_API_KEY ||
-      "cb1_4oep_1_6476c53772ced180ddb8926a"
-    ).trim();
-    const tileUrl = `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoKey)}`;
+    // Tiles públicos do CARTO não exigem key. Não adicione key aqui (nem via VITE_*):
+    // tudo vai em texto puro pro bundle publicado no GitHub Pages.
+    const tileUrl = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 
     L.tileLayer(tileUrl, {
       subdomains: "abcd",
